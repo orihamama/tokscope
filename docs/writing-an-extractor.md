@@ -2,7 +2,7 @@
 
 An extractor is a plugin that runs at ingest time, receives a JSONL
 record + bound context, and returns a dict of column values to write
-onto the row. Extractors declare which columns they own; tokenscope
+onto the row. Extractors declare which columns they own; tokscope
 adds those columns idempotently at `init_schema` time.
 
 ## Protocol
@@ -34,7 +34,7 @@ per-host analytics.
 # my_pkg/webfetch_host.py
 from urllib.parse import urlparse
 
-from tokenscope.plugins import registry
+from tokscope.plugins import registry
 
 
 class WebFetchHost:
@@ -65,9 +65,9 @@ registry.register_extractor(WebFetchHost())
 
 ## Registering
 
-- **User dir**: `~/.config/tokenscope/plugins/webfetch_host.py` — auto-import on startup.
-- **Entry point**: `[project.entry-points."tokenscope.extractors"]`.
-- **Built-in**: add under `src/tokenscope/plugins/builtins/extractors/` and import in `__init__.py`.
+- **User dir**: `~/.config/tokscope/plugins/webfetch_host.py` — auto-import on startup.
+- **Entry point**: `[project.entry-points."tokscope.extractors"]`.
+- **Built-in**: add under `src/tokscope/plugins/builtins/extractors/` and import in `__init__.py`.
 
 ## Backfilling
 
@@ -75,7 +75,7 @@ Extractors only run on **new** ingestions by default. To populate the
 new columns over existing rows:
 
 ```bash
-tokenscope enrich-existing
+tokscope enrich-existing
 ```
 
 This walks every JSONL referenced by the DB and re-invokes every
@@ -83,13 +83,13 @@ registered extractor.
 
 ## Lifecycle
 
-1. `tokenscope.db.init_schema(conn)` runs `_apply_extractor_schema`,
+1. `tokscope.db.init_schema(conn)` runs `_apply_extractor_schema`,
    which iterates registered extractors and runs `ALTER TABLE
    {messages|tool_calls} ADD COLUMN {name} {type}` for any missing
    columns. Idempotent.
-2. During `tokenscope ingest`, the parser invokes every registered
+2. During `tokscope ingest`, the parser invokes every registered
    extractor on each row, merges returned dicts, and updates the row.
-3. `version` field bumps trigger backfill (planned: tokenscope tracks
+3. `version` field bumps trigger backfill (planned: tokscope tracks
    `meta.extractor_versions` and prompts re-run when stale).
 
 ## Tips
@@ -101,5 +101,5 @@ registered extractor.
   for assistant/user message-level fields. Most extractors target
   `tool_call`.
 - If you need data only available in tool_result (status, exit code,
-  result text), tokenscope invokes your extractor a second time after
+  result text), tokscope invokes your extractor a second time after
   the result lands so you can refine columns then.

@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/tokenscope
+      url: https://pypi.org/p/tokscope
     permissions:
       id-token: write
     steps:
@@ -80,8 +80,8 @@ jobs:
       - name: Bump Homebrew formula
         uses: mislav/bump-homebrew-formula-action@v3
         with:
-          formula-name: tokenscope
-          tap: orihamama/homebrew-tokenscope
+          formula-name: tokscope
+          tap: orihamama/homebrew-tokscope
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         continue-on-error: true   # tap may not exist on first releases

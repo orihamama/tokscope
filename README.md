@@ -1,8 +1,8 @@
-# tokenscope
+# tokscope
 
-[![PyPI](https://img.shields.io/pypi/v/tokenscope.svg)](https://pypi.org/project/tokenscope/)
-[![Python](https://img.shields.io/pypi/pyversions/tokenscope.svg)](https://pypi.org/project/tokenscope/)
-[![CI](https://github.com/orihamama/tokenscope/actions/workflows/ci.yml/badge.svg)](https://github.com/orihamama/tokenscope/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/tokscope.svg)](https://pypi.org/project/tokscope/)
+[![Python](https://img.shields.io/pypi/pyversions/tokscope.svg)](https://pypi.org/project/tokscope/)
+[![CI](https://github.com/orihamama/tokscope/actions/workflows/ci.yml/badge.svg)](https://github.com/orihamama/tokscope/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 
@@ -25,7 +25,7 @@ Zero-install via `uvx`:
 
 ```bash
 # Claude Code
-claude mcp add tokenscope -- uvx tokenscope mcp
+claude mcp add tokscope -- uvx tokscope mcp
 ```
 
 Or in `~/.claude.json` / project `.mcp.json`:
@@ -33,9 +33,9 @@ Or in `~/.claude.json` / project `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "tokenscope": {
+    "tokscope": {
       "command": "uvx",
-      "args": ["tokenscope", "mcp"]
+      "args": ["tokscope", "mcp"]
     }
   }
 }
@@ -46,9 +46,9 @@ Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json
 ```json
 {
   "mcpServers": {
-    "tokenscope": {
+    "tokscope": {
       "command": "uvx",
-      "args": ["tokenscope", "mcp"]
+      "args": ["tokscope", "mcp"]
     }
   }
 }
@@ -59,24 +59,24 @@ Then ask Claude Code: *"where am I burning tokens today?"* → it calls `get_ins
 ### CLI / dashboard (pipx)
 
 ```bash
-pipx install tokenscope
-tokenscope ingest          # parse JSONL → SQLite (incremental)
-tokenscope serve           # dashboard at http://localhost:8787
-tokenscope report --by tool
+pipx install tokscope
+tokscope ingest          # parse JSONL → SQLite (incremental)
+tokscope serve           # dashboard at http://localhost:8787
+tokscope report --by tool
 ```
 
 ### Homebrew
 
 ```bash
-brew tap orihamama/tokenscope
-brew install tokenscope
+brew tap orihamama/tokscope
+brew install tokscope
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/orihamama/tokenscope
-cd tokenscope
+git clone https://github.com/orihamama/tokscope
+cd tokscope
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
@@ -104,19 +104,19 @@ All filterable by project / session / task / tool / time range. Resources: `anal
 ## CLI
 
 ```bash
-tokenscope ingest                       # parse JSONL → SQLite (incremental)
-tokenscope report --by tool             # per-tool spend, errors, latency
-tokenscope report --by task             # sub-agent invocations
-tokenscope report --by project
-tokenscope report --by session
-tokenscope report --by day
-tokenscope report --by file             # file hotspots
-tokenscope report --by bash             # top shell commands
-tokenscope report --by workflow         # tool sequence bigrams
+tokscope ingest                       # parse JSONL → SQLite (incremental)
+tokscope report --by tool             # per-tool spend, errors, latency
+tokscope report --by task             # sub-agent invocations
+tokscope report --by project
+tokscope report --by session
+tokscope report --by day
+tokscope report --by file             # file hotspots
+tokscope report --by bash             # top shell commands
+tokscope report --by workflow         # tool sequence bigrams
 
-tokenscope serve                        # dashboard at http://localhost:8787 (auto-watch)
-tokenscope export tool_calls --format csv -o tool_calls.csv
-tokenscope mcp                          # MCP stdio server
+tokscope serve                        # dashboard at http://localhost:8787 (auto-watch)
+tokscope export tool_calls --format csv -o tool_calls.csv
+tokscope mcp                          # MCP stdio server
 ```
 
 ---
@@ -179,7 +179,7 @@ tokenscope mcp                          # MCP stdio server
 
 ## Contributing
 
-PRs welcome. Bug reports + feature ideas → [Issues](https://github.com/orihamama/tokenscope/issues).
+PRs welcome. Bug reports + feature ideas → [Issues](https://github.com/orihamama/tokscope/issues).
 
 Run tests:
 

@@ -1,14 +1,14 @@
-# Contributing to tokenscope
+# Contributing to tokscope
 
-Thanks for taking the time to contribute. tokenscope is a small,
+Thanks for taking the time to contribute. tokscope is a small,
 focused tool — bug reports, plugin contributions, and feature ideas
 are all welcome.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/orihamama/tokenscope
-cd tokenscope
+git clone https://github.com/orihamama/tokscope
+cd tokscope
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 .venv/bin/pre-commit install      # optional but recommended
@@ -19,9 +19,9 @@ python3 -m venv .venv
 
 | Path | Purpose |
 |---|---|
-| `src/tokenscope/` | Package source |
-| `src/tokenscope/plugins/` | Plugin protocols, registry, built-ins |
-| `src/tokenscope/web/` | Static dashboard assets |
+| `src/tokscope/` | Package source |
+| `src/tokscope/plugins/` | Plugin protocols, registry, built-ins |
+| `src/tokscope/web/` | Static dashboard assets |
 | `tests/` | pytest suite + `conftest.py` synthetic-DB fixture |
 | `docs/` | Architecture, MCP/CLI references, plugin authoring |
 | `examples/` | Drop-in sample detectors + extractors + demo prompts |
@@ -29,13 +29,13 @@ python3 -m venv .venv
 
 ## Where to make changes
 
-- **New detector** → `src/tokenscope/plugins/builtins/detectors/<name>.py`
+- **New detector** → `src/tokscope/plugins/builtins/detectors/<name>.py`
   + import from `detectors/__init__.py`. See [`docs/writing-a-detector.md`](docs/writing-a-detector.md).
-- **New extractor** → `src/tokenscope/plugins/builtins/extractors/<name>.py`
+- **New extractor** → `src/tokscope/plugins/builtins/extractors/<name>.py`
   + import from `extractors/__init__.py`. See [`docs/writing-an-extractor.md`](docs/writing-an-extractor.md).
 - **New MCP tool** → only when behavior can't be expressed as a detector.
   Add to `mcp_server.py` `list_tools()` and `_payload()`.
-- **New entity-level analytic** → `src/tokenscope/analytics_core.py`.
+- **New entity-level analytic** → `src/tokscope/analytics_core.py`.
   Detectors should still be plugins.
 - **New SQL columns** → declared via `Extractor.fields()`. Don't edit
   `db.py` `SCHEMA` for plugin-driven additions.
@@ -90,9 +90,9 @@ test(investigate): cover auto-target path
 
 ## Reporting bugs
 
-Open an [issue](https://github.com/orihamama/tokenscope/issues) with:
+Open an [issue](https://github.com/orihamama/tokscope/issues) with:
 
-- tokenscope version (`tokenscope --version` or git SHA)
+- tokscope version (`tokscope --version` or git SHA)
 - Python version + OS
 - Minimal reproduction (a small SQL query or a synthetic DB seeding,
   not a dump of your real `~/.claude/analytics.db`).

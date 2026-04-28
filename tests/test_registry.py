@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from tokenscope.plugins import Detector, Extractor, registry
+from tokscope.plugins import Detector, Extractor, registry
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -53,7 +53,7 @@ def test_detectors_satisfy_protocol() -> None:
 
 def test_status_class_classifies() -> None:
     """Unit test the status_class extractor's classifier directly."""
-    from tokenscope.plugins.builtins.extractors.status_class import classify
+    from tokscope.plugins.builtins.extractors.status_class import classify
 
     cls, rej = classify("The user doesn't want to proceed", "Bash", None, True, False)
     assert cls == "user_rejection" and rej == 1
@@ -80,7 +80,7 @@ def test_paging_reads_runs_on_empty_db(tmp_path) -> None:
     """Detector should not crash on an empty DB."""
     db = tmp_path / "t.db"
     conn = sqlite3.connect(db)
-    from tokenscope.db import init_schema
+    from tokscope.db import init_schema
 
     init_schema(conn)
     rows = registry.detectors["paging_reads"].run(conn, {}, {})

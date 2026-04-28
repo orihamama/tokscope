@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tokenscope.db import init_schema
+from tokscope.db import init_schema
 
 
 def _row_dict(conn: sqlite3.Connection, table: str, **fields) -> None:
@@ -354,11 +354,11 @@ def seeded_db(tmp_path: Path) -> sqlite3.Connection:
 
 @pytest.fixture
 def patched_core(seeded_db, monkeypatch):
-    """Make tokenscope.analytics_core._conn return the seeded DB so the
+    """Make tokscope.analytics_core._conn return the seeded DB so the
     public functions (overview, top_costs, session_detail, etc.) operate
     on test data instead of the user's real ~/.claude/analytics.db.
     """
-    from tokenscope import analytics_core as core
+    from tokscope import analytics_core as core
 
     monkeypatch.setattr(core, "_conn", lambda: seeded_db)
     return core

@@ -1,13 +1,13 @@
 # Changelog
 
-All notable changes to tokenscope are documented here. Format follows
+All notable changes to tokscope are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ### Added
-- Pluggable plugin system (`tokenscope.plugins`): `Extractor`, `Aggregator`,
+- Pluggable plugin system (`tokscope.plugins`): `Extractor`, `Aggregator`,
   `Detector` Protocols + central `Registry`.
 - 4 built-in extractors: `bash_meta`, `bash_touched_files`, `read_range`,
   `status_class`.
@@ -15,13 +15,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `duplicate_reads`, `error_chains`, `paging_reads`, `permission_denials`,
   `redundant_read_ranges`, `repeat_tasks`.
 - New MCP tool: `investigate` — root-cause synthesis with ranked actions.
-- New CLI subcommands: `tokenscope detectors list/run`,
-  `tokenscope extractors list`, `tokenscope enrich-existing`,
-  `tokenscope dedupe-billing`, `tokenscope prune-ephemeral`,
-  `tokenscope reparse-bash`.
+- New CLI subcommands: `tokscope detectors list/run`,
+  `tokscope extractors list`, `tokscope enrich-existing`,
+  `tokscope dedupe-billing`, `tokscope prune-ephemeral`,
+  `tokscope reparse-bash`.
 - Three plugin discovery sources: built-ins, entry-points
-  (`tokenscope.{extractors,aggregators,detectors}` groups), and user dir
-  (`~/.config/tokenscope/plugins/`).
+  (`tokscope.{extractors,aggregators,detectors}` groups), and user dir
+  (`~/.config/tokscope/plugins/`).
 - Schema extensions surfaced via extractor `fields()` — idempotent
   `ALTER TABLE ADD COLUMN` for `read_offset`, `read_limit`, `touched_files`,
   `status_class`, `is_user_rejection`, `result_text_snippet`.
@@ -43,7 +43,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Cost overcount**: Anthropic emits one JSONL record per content block
   (thinking/text/tool_use); each carried full request usage. Ingest now
   bills only the first record per `(session_id, request_id)`. Existing
-  DBs migrated via `tokenscope dedupe-billing`.
+  DBs migrated via `tokscope dedupe-billing`.
 - **Bash parser**: failed on multi-line scripts, comments, control-flow
   keywords (for/while/until/if). Rewritten with statement splitting,
   control-keyword skipping, prefix-word stripping (time/nice/nohup/...).

@@ -1,6 +1,6 @@
-# Live Transcript — what tokenscope feels like
+# Live Transcript — what tokscope feels like
 
-A representative session with tokenscope's MCP server registered.
+A representative session with tokscope's MCP server registered.
 Numbers and project names below are illustrative; real output reflects
 your own data.
 
@@ -83,14 +83,14 @@ your own data.
 
 **You:** *"add a custom detector for sessions running more than 12 hours"*
 
-**Claude:** *(reads `examples/sample-detector.py`, edits to threshold=12, writes to `~/.config/tokenscope/plugins/long_sessions.py`)*
+**Claude:** *(reads `examples/sample-detector.py`, edits to threshold=12, writes to `~/.config/tokscope/plugins/long_sessions.py`)*
 
-> Created. Run `tokenscope detectors list` and you'll see `long_sessions`
+> Created. Run `tokscope detectors list` and you'll see `long_sessions`
 > alongside the built-ins. It'll automatically flow through `get_insights`
 > on the next call. To run directly:
 >
 > ```
-> tokenscope detectors run long_sessions --param min_hours=12
+> tokscope detectors run long_sessions --param min_hours=12
 > ```
 
 ---

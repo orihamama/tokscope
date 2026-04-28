@@ -1,6 +1,6 @@
 """Plugin protocols: Extractor, Aggregator, Detector.
 
-Three plugin types extend tokenscope without forking:
+Three plugin types extend tokscope without forking:
 
 - Extractor — runs per JSONL record at ingest, populates columns on
   `messages` or `tool_calls`.
@@ -82,9 +82,9 @@ class Detector(Protocol):
     """Query-time pattern detector.
 
     Surfaced via:
-      - tokenscope detectors run <name>
+      - tokscope detectors run <name>
       - MCP run_detector tool
-      - tokenscope.plugins.registry.detectors[name].run(...)
+      - tokscope.plugins.registry.detectors[name].run(...)
     """
 
     name: str

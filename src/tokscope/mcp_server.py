@@ -1,8 +1,8 @@
-"""MCP stdio server exposing curated tokenscope tools to AI agents.
+"""MCP stdio server exposing curated tokscope tools to AI agents.
 
-Run via:  tokenscope mcp
+Run via:  tokscope mcp
 Configure in Claude Code:
-  claude mcp add tokenscope /path/to/.venv/bin/tokenscope mcp
+  claude mcp add tokscope /path/to/.venv/bin/tokscope mcp
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from mcp.types import Resource, TextContent, Tool
 
 from . import analytics_core as core
 
-SERVER_NAME = "tokenscope"
+SERVER_NAME = "tokscope"
 app: Server = Server(SERVER_NAME)
 
 

@@ -1,7 +1,7 @@
 # Writing a Detector
 
 A detector is a plugin that runs at query time over the SQLite analytics
-DB and returns a list of finding rows. tokenscope ships ~9 built-in
+DB and returns a list of finding rows. tokscope ships ~9 built-in
 detectors; this guide shows how to add your own.
 
 ## Protocol
@@ -19,7 +19,7 @@ class Detector(Protocol):
 ```
 
 `filters` always carries optional keys: `project`, `session_id`,
-`task_id`, `tool`, `since`, `until`. Use `tokenscope.analytics_core._build_filters`
+`task_id`, `tool`, `since`, `until`. Use `tokscope.analytics_core._build_filters`
 to translate them into a `WHERE` clause.
 
 `run` returns a list of dicts. Each row should:
@@ -36,8 +36,8 @@ Surface bash commands whose `duration_ms` is above a threshold.
 
 ```python
 # my_pkg/slow_bash.py
-from tokenscope.analytics_core import _build_filters
-from tokenscope.plugins import registry
+from tokscope.analytics_core import _build_filters
+from tokscope.plugins import registry
 
 
 class SlowBash:
@@ -79,18 +79,18 @@ registry.register_detector(SlowBash())
 
 Three discovery sources, in order:
 
-1. **User dir** — drop the file in `~/.config/tokenscope/plugins/`. Auto-imported.
+1. **User dir** — drop the file in `~/.config/tokscope/plugins/`. Auto-imported.
 2. **Entry points** — declare in your package's `pyproject.toml`:
    ```toml
-   [project.entry-points."tokenscope.detectors"]
+   [project.entry-points."tokscope.detectors"]
    slow_bash = "my_pkg.slow_bash:SlowBash"
    ```
-3. **Built-in** — add module under `src/tokenscope/plugins/builtins/detectors/`
+3. **Built-in** — add module under `src/tokscope/plugins/builtins/detectors/`
    and import it from `__init__.py`.
 
 After registration, the detector is callable via:
 
-- CLI: `tokenscope detectors run slow_bash --param min_ms=10000`
+- CLI: `tokscope detectors run slow_bash --param min_ms=10000`
 - MCP: `run_detector(name='slow_bash', params={'min_ms': 10000})`
 
 ## Tips
@@ -103,4 +103,4 @@ After registration, the detector is callable via:
   from real errors. Add an `include_rejections` boolean param if useful.
 - Declare your `requires` honestly. If you depend on a column an extractor
   populates (e.g. `read_offset` from `read_range`), list it. The CLI shows
-  required extractors in `tokenscope detectors list`.
+  required extractors in `tokscope detectors list`.

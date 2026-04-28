@@ -1,5 +1,5 @@
 [project]
-name = "tokenscope"
+name = "tokscope"
 version = "0.1.0"
 description = "Token-spend analytics for Claude Code — per-tool, per-task, per-project. CLI + web dashboard + MCP server."
 readme = "README.md"
@@ -57,25 +57,25 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/orihamama/tokenscope"
-Issues = "https://github.com/orihamama/tokenscope/issues"
-Source = "https://github.com/orihamama/tokenscope"
-Changelog = "https://github.com/orihamama/tokenscope/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/orihamama/tokscope"
+Issues = "https://github.com/orihamama/tokscope/issues"
+Source = "https://github.com/orihamama/tokscope"
+Changelog = "https://github.com/orihamama/tokscope/blob/main/CHANGELOG.md"
 
 [project.scripts]
-tokenscope = "tokenscope.cli:app"
+tokscope = "tokscope.cli:app"
 
 # Plugin entry points — third-party packages can register extractors,
-# aggregators, or detectors that tokenscope picks up automatically.
-# Built-ins live in `src/tokenscope/plugins/builtins/`; these groups
+# aggregators, or detectors that tokscope picks up automatically.
+# Built-ins live in `src/tokscope/plugins/builtins/`; these groups
 # document the public extension API.
-[project.entry-points."tokenscope.extractors"]
+[project.entry-points."tokscope.extractors"]
 # Example: my_extractor = "my_pkg.module:MyExtractor"
 
-[project.entry-points."tokenscope.aggregators"]
+[project.entry-points."tokscope.aggregators"]
 # Example: my_aggregator = "my_pkg.module:MyAggregator"
 
-[project.entry-points."tokenscope.detectors"]
+[project.entry-points."tokscope.detectors"]
 # Example: my_detector = "my_pkg.module:MyDetector"
 
 [build-system]
@@ -83,7 +83,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tokenscope"]
+packages = ["src/tokscope"]
 # Static web assets are included via the package itself; no force-include needed.
 
 [tool.hatch.build.targets.sdist]
@@ -138,5 +138,5 @@ ignore_missing_imports = true
 files = ["src"]
 
 [tool.coverage.run]
-source = ["src/tokenscope"]
+source = ["src/tokscope"]
 branch = true

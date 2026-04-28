@@ -31,4 +31,4 @@ template: |
 
   $CHANGES
 
-  **Full changelog**: https://github.com/orihamama/tokenscope/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+  **Full changelog**: https://github.com/orihamama/tokscope/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

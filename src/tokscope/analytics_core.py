@@ -739,7 +739,7 @@ def schema_markdown() -> str:
         SELECT name, sql FROM sqlite_master
         WHERE type='table' AND name NOT LIKE 'sqlite_%'
         ORDER BY name""").fetchall()
-    parts = ["# tokenscope DB schema\n"]
+    parts = ["# tokscope DB schema\n"]
     for r in rows:
         parts.append(f"## `{r['name']}`\n```sql\n{r['sql']}\n```\n")
     # column counts per table for quick reference

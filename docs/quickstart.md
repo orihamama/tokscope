@@ -7,14 +7,14 @@
 ### Easiest — uvx, no local install
 
 ```bash
-claude mcp add tokenscope -- uvx tokenscope mcp
+claude mcp add tokscope -- uvx tokscope mcp
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/orihamama/tokenscope
-cd tokenscope
+git clone https://github.com/orihamama/tokscope
+cd tokscope
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
@@ -22,27 +22,27 @@ python3 -m venv .venv
 Verify:
 
 ```bash
-.venv/bin/tokenscope --help
-.venv/bin/tokenscope detectors list
+.venv/bin/tokscope --help
+.venv/bin/tokscope detectors list
 ```
 
 ## First run
 
 ```bash
 # Parse all your Claude Code session logs into ~/.claude/analytics.db
-.venv/bin/tokenscope ingest
+.venv/bin/tokscope ingest
 
 # Quick CLI report
-.venv/bin/tokenscope report --by tool
+.venv/bin/tokscope report --by tool
 
 # Open the web dashboard at http://localhost:8787
-.venv/bin/tokenscope serve
+.venv/bin/tokscope serve
 ```
 
 ## Register the MCP server with Claude Code
 
 ```bash
-claude mcp add tokenscope -- /full/path/to/.venv/bin/tokenscope mcp
+claude mcp add tokscope -- /full/path/to/.venv/bin/tokscope mcp
 claude mcp list                    # ✓ Connected
 ```
 
@@ -76,31 +76,31 @@ If your DB has data from before the v0.1 fixes:
 
 ```bash
 # Anthropic emits 1 API request as N JSONL records — fix double billing
-.venv/bin/tokenscope dedupe-billing
+.venv/bin/tokscope dedupe-billing
 
 # Subagent ephemeral worktrees (/private/tmp/agent/*) pollute project rollups
-.venv/bin/tokenscope prune-ephemeral
+.venv/bin/tokscope prune-ephemeral
 
 # Backfill plugin extractor columns (status_class, read_offset, touched_files...)
-.venv/bin/tokenscope enrich-existing
+.venv/bin/tokscope enrich-existing
 ```
 
 ## Power-user: run individual detectors
 
 ```bash
-.venv/bin/tokenscope detectors list
-.venv/bin/tokenscope detectors run paging_reads --param min_pages=10
-.venv/bin/tokenscope detectors run permission_denials --since 2026-04-22
-.venv/bin/tokenscope detectors run redundant_read_ranges --param min_redundancy=3
+.venv/bin/tokscope detectors list
+.venv/bin/tokscope detectors run paging_reads --param min_pages=10
+.venv/bin/tokscope detectors run permission_denials --since 2026-04-22
+.venv/bin/tokscope detectors run redundant_read_ranges --param min_redundancy=3
 ```
 
 ## Author your own detector
 
-Drop a file in `~/.config/tokenscope/plugins/` — see [`writing-a-detector.md`](writing-a-detector.md). It's auto-discovered, exposed in CLI, and flows through `get_insights` automatically.
+Drop a file in `~/.config/tokscope/plugins/` — see [`writing-a-detector.md`](writing-a-detector.md). It's auto-discovered, exposed in CLI, and flows through `get_insights` automatically.
 
 ## Troubleshooting
 
 - **MCP tools don't appear in Claude Code**: open a new session — tools load at session start, not mid-conversation.
-- **"all-time spend looks 2× higher than expected"**: run `dedupe-billing`. Anthropic JSONL emits multiple records per API request; tokenscope's ingest now bills only the first, but old DBs need migration.
+- **"all-time spend looks 2× higher than expected"**: run `dedupe-billing`. Anthropic JSONL emits multiple records per API request; tokscope's ingest now bills only the first, but old DBs need migration.
 - **`get_insights` payload too big**: filter to a project or time window. Each detector section is capped at 15 rows.
-- **Empty detectors**: confirm your DB is populated (`tokenscope report --by tool` shows rows). Then check `tokenscope extractors list` — the columns each detector requires must exist.
+- **Empty detectors**: confirm your DB is populated (`tokscope report --by tool` shows rows). Then check `tokscope extractors list` — the columns each detector requires must exist.

@@ -533,11 +533,11 @@ def mcp_cmd():
     """Run MCP stdio server. Configure in Claude Code / Claude Desktop.
 
     Claude Code:
-        claude mcp add tokenscope /path/to/.venv/bin/tokenscope mcp
+        claude mcp add tokscope /path/to/.venv/bin/tokscope mcp
 
     Claude Desktop (~/Library/Application Support/Claude/claude_desktop_config.json):
-        {"mcpServers": {"tokenscope":
-            {"command": "/path/to/.venv/bin/tokenscope", "args": ["mcp"]}}}
+        {"mcpServers": {"tokscope":
+            {"command": "/path/to/.venv/bin/tokscope", "args": ["mcp"]}}}
     """
     import asyncio
 

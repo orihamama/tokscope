@@ -7,7 +7,7 @@ not patched.
 
 ## Threat model
 
-tokenscope is a **read-only local analytics tool**. It:
+tokscope is a **read-only local analytics tool**. It:
 
 - Reads files only under `~/.claude/projects/`.
 - Writes only to `~/.claude/analytics.db` (a single SQLite file).
@@ -17,9 +17,9 @@ tokenscope is a **read-only local analytics tool**. It:
 The threat surface is therefore small but non-zero:
 
 1. **Plugin code execution.** User-installed extractors and detectors
-   are imported and executed by tokenscope. Plugins from
-   `~/.config/tokenscope/plugins/` and entry-points run with the same
-   privileges as tokenscope itself. **Only install plugins you trust.**
+   are imported and executed by tokscope. Plugins from
+   `~/.config/tokscope/plugins/` and entry-points run with the same
+   privileges as tokscope itself. **Only install plugins you trust.**
 
 2. **Data sensitivity.** `~/.claude/analytics.db` may contain
    command-line arguments, file paths, search patterns, and excerpts of
@@ -28,10 +28,10 @@ The threat surface is therefore small but non-zero:
    stores the first 200 characters of error messages — this can include
    sensitive payloads in some scenarios.
 
-3. **MCP exposure.** When registered as an MCP server, tokenscope
+3. **MCP exposure.** When registered as an MCP server, tokscope
    responds to any caller on the same machine. The Claude Code / Claude
    Desktop runtime is the typical caller. There is no auth — local
-   stdio only. Do not expose tokenscope over a network without
+   stdio only. Do not expose tokscope over a network without
    wrapping it in an authenticated layer.
 
 ## Reporting a vulnerability

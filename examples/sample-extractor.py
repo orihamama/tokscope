@@ -1,12 +1,12 @@
 """Sample user-authored extractor.
 
-Drop this file at ~/.config/tokenscope/plugins/sample_extractor.py to
+Drop this file at ~/.config/tokscope/plugins/sample_extractor.py to
 make it auto-discoverable.
 
 Captures the host portion of WebFetch URLs into a new column for
 per-host analytics. After installing, run:
 
-    tokenscope enrich-existing
+    tokscope enrich-existing
 
 to backfill the column on existing rows.
 """
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from tokenscope.plugins import registry
+from tokscope.plugins import registry
 
 
 class WebFetchHost:

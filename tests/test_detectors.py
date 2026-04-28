@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tokenscope.plugins import registry
+from tokscope.plugins import registry
 
 
 @pytest.fixture(scope="module", autouse=True)

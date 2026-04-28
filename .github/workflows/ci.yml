@@ -76,7 +76,7 @@ jobs:
       - name: tools/list via MCP Inspector
         run: |
           npx --yes @modelcontextprotocol/inspector --cli \
-            tokenscope mcp \
+            tokscope mcp \
             --method tools/list \
             > tools.json
           test -s tools.json

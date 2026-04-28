@@ -1,6 +1,6 @@
 # Architecture
 
-tokenscope = three layers + three plugin types + three surfaces.
+tokscope = three layers + three plugin types + three surfaces.
 
 ```
                     ┌─────────────────────┐
@@ -74,7 +74,7 @@ via tool_calls + messages joins.
 
 Runs at query time. Returns finding rows. Declares its `params_schema`,
 `requires` (extractor names it depends on), and `description` (surfaces
-in `tokenscope detectors list`).
+in `tokscope detectors list`).
 
 See [`docs/writing-a-detector.md`](writing-a-detector.md).
 
@@ -82,14 +82,14 @@ See [`docs/writing-a-detector.md`](writing-a-detector.md).
 
 Plugins are registered three ways, in this order:
 
-1. **Built-ins**: imported at module load via `tokenscope/plugins/builtins/`.
+1. **Built-ins**: imported at module load via `tokscope/plugins/builtins/`.
 2. **Entry points**: third-party packages declare in pyproject:
    ```toml
-   [project.entry-points."tokenscope.detectors"]
+   [project.entry-points."tokscope.detectors"]
    my_detector = "my_pkg.module:MyDetector"
    ```
-3. **User dir**: `*.py` files in `~/.config/tokenscope/plugins/` are
-   auto-imported. Override with `TOKENSCOPE_PLUGIN_DIR=/path` env var.
+3. **User dir**: `*.py` files in `~/.config/tokscope/plugins/` are
+   auto-imported. Override with `TOKSCOPE_PLUGIN_DIR=/path` env var.
 
 ## Surfaces
 
@@ -106,14 +106,14 @@ MCP code change needed.
 
 ### CLI
 
-Entity-level reports (`tokenscope report --by tool|task|session|...`),
-plus power-user plugin tooling: `tokenscope detectors list/run`,
-`tokenscope extractors list`, `tokenscope enrich-existing`,
-`tokenscope dedupe-billing`, `tokenscope prune-ephemeral`.
+Entity-level reports (`tokscope report --by tool|task|session|...`),
+plus power-user plugin tooling: `tokscope detectors list/run`,
+`tokscope extractors list`, `tokscope enrich-existing`,
+`tokscope dedupe-billing`, `tokscope prune-ephemeral`.
 
 ### Web dashboard
 
-`tokenscope serve` at `http://localhost:8787` — auto-reload on JSONL
+`tokscope serve` at `http://localhost:8787` — auto-reload on JSONL
 changes via watchdog filesystem events.
 
 ## Privacy

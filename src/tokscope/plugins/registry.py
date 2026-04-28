@@ -12,13 +12,13 @@ from typing import Any
 from .base import Aggregator, Detector, Extractor
 
 USER_PLUGIN_DIR = Path(
-    os.environ.get("TOKENSCOPE_PLUGIN_DIR") or Path.home() / ".config" / "tokenscope" / "plugins"
+    os.environ.get("TOKSCOPE_PLUGIN_DIR") or Path.home() / ".config" / "tokscope" / "plugins"
 )
 
 ENTRY_POINT_GROUPS = {
-    "extractors": "tokenscope.extractors",
-    "aggregators": "tokenscope.aggregators",
-    "detectors": "tokenscope.detectors",
+    "extractors": "tokscope.extractors",
+    "aggregators": "tokscope.aggregators",
+    "detectors": "tokscope.detectors",
 }
 
 
@@ -61,7 +61,7 @@ class Registry:
 
     def _load_builtins(self) -> None:
         # Importing the package triggers @register decorators in each module.
-        importlib.import_module("tokenscope.plugins.builtins")
+        importlib.import_module("tokscope.plugins.builtins")
 
     def _load_entry_points(self) -> None:
         try:

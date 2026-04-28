@@ -7,8 +7,8 @@ import pytest
 
 @pytest.fixture
 def patched_inv(seeded_db, monkeypatch):
-    from tokenscope import analytics_core as core
-    from tokenscope import investigate as inv
+    from tokscope import analytics_core as core
+    from tokscope import investigate as inv
 
     monkeypatch.setattr(core, "_conn", lambda: seeded_db)
     monkeypatch.setattr(inv, "_conn", lambda: seeded_db)

@@ -1,6 +1,6 @@
 # Demo Prompts
 
-Once `tokenscope` is registered as an MCP server in Claude Code, ask it
+Once `tokscope` is registered as an MCP server in Claude Code, ask it
 to introspect your own usage. These prompts each exercise different
 parts of the tool surface.
 
@@ -81,7 +81,7 @@ that project.
 
 ## Operational
 
-> *"Walk me through what tokenscope can do — read the schema."*
+> *"Walk me through what tokscope can do — read the schema."*
 
 Reads the `analytics://schema` resource. Returns markdown DDL of every
 table with column types.
@@ -89,4 +89,4 @@ table with column types.
 > *"List your detectors."*
 
 Tool definitions for `get_insights` describe what each section means.
-Or run `tokenscope detectors list` directly in a terminal.
+Or run `tokscope detectors list` directly in a terminal.

@@ -1,6 +1,6 @@
 """Sample user-authored detector.
 
-Drop this file at ~/.config/tokenscope/plugins/sample_detector.py to make
+Drop this file at ~/.config/tokscope/plugins/sample_detector.py to make
 it auto-discoverable, or copy the pattern for your own detector.
 
 Detects sessions running for more than `min_hours` (default 24h) — long
@@ -9,8 +9,8 @@ sessions accumulate context-rebuild overhead and lose attention focus.
 
 from __future__ import annotations
 
-from tokenscope.analytics_core import _build_filters
-from tokenscope.plugins import registry
+from tokscope.analytics_core import _build_filters
+from tokscope.plugins import registry
 
 
 class LongSessions:

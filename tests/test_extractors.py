@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tokenscope.plugins import ExtractCtx, registry
+from tokscope.plugins import ExtractCtx, registry
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -123,7 +123,7 @@ def test_read_range_returns_none_when_unset():
 
 
 def test_status_class_classifies_user_rejection():
-    from tokenscope.plugins.builtins.extractors.status_class import classify
+    from tokscope.plugins.builtins.extractors.status_class import classify
 
     cls, rej = classify(
         "The user doesn't want to proceed with this tool use", "Bash", None, True, False
@@ -133,7 +133,7 @@ def test_status_class_classifies_user_rejection():
 
 
 def test_status_class_distinguishes_denied_vs_other_errors():
-    from tokenscope.plugins.builtins.extractors.status_class import classify
+    from tokscope.plugins.builtins.extractors.status_class import classify
 
     cls, _ = classify("Permission to use Bash has been denied", "Bash", None, True, False)
     assert cls == "denied"
@@ -148,14 +148,14 @@ def test_status_class_distinguishes_denied_vs_other_errors():
 
 
 def test_status_class_success_path():
-    from tokenscope.plugins.builtins.extractors.status_class import classify
+    from tokscope.plugins.builtins.extractors.status_class import classify
 
     cls, _ = classify("ok", "Bash", 0, False, False)
     assert cls == "success"
 
 
 def test_status_class_bash_exit_code():
-    from tokenscope.plugins.builtins.extractors.status_class import classify
+    from tokscope.plugins.builtins.extractors.status_class import classify
 
     cls, _ = classify("error", "Bash", 2, True, False)
     assert cls == "bash_exit_nonzero"

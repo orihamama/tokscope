@@ -10,12 +10,12 @@ import pytest
 @pytest.fixture
 def patched_mcp(seeded_db, monkeypatch):
     """Point all MCP tool implementations at the seeded DB."""
-    from tokenscope import analytics_core as core
-    from tokenscope import investigate as inv
+    from tokscope import analytics_core as core
+    from tokscope import investigate as inv
 
     monkeypatch.setattr(core, "_conn", lambda: seeded_db)
     monkeypatch.setattr(inv, "_conn", lambda: seeded_db)
-    from tokenscope import mcp_server
+    from tokscope import mcp_server
 
     return mcp_server
 
