@@ -1,13 +1,15 @@
 """Typer CLI: ingest / report / serve / export."""
+
 from __future__ import annotations
+
 import json
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from . import aggregate, ingest as ingest_mod
+from . import aggregate
+from . import ingest as ingest_mod
 from .db import connect, init_schema
 from .paths import DB_PATH
 
@@ -22,12 +24,16 @@ def ingest_cmd(verbose: bool = typer.Option(False, "--verbose", "-v")):
     stats = ingest_mod.ingest_all(verbose=verbose)
     console.print(f"  files processed: [green]{stats['files']}[/], skipped: {stats['skipped']}")
     new_msgs = stats["messages_after"] - stats["messages_before"]
-    console.print(f"  messages: {stats['messages_before']} → {stats['messages_after']} (+{new_msgs})")
+    console.print(
+        f"  messages: {stats['messages_before']} → {stats['messages_after']} (+{new_msgs})"
+    )
     console.print(f"  elapsed: {stats['elapsed_s']}s")
     console.print("[bold]Aggregating...[/]")
     agg = aggregate.rebuild_all()
-    console.print(f"  sessions={agg['sessions']} tasks={agg['tasks']} "
-                  f"file_activity={agg['file_activity']} sequences={agg['tool_sequences']}")
+    console.print(
+        f"  sessions={agg['sessions']} tasks={agg['tasks']} "
+        f"file_activity={agg['file_activity']} sequences={agg['tool_sequences']}"
+    )
     console.print(f"[dim]DB at {DB_PATH}[/]")
 
 
@@ -35,7 +41,7 @@ def ingest_cmd(verbose: bool = typer.Option(False, "--verbose", "-v")):
 def report_cmd(
     by: str = typer.Option("tool", "--by", help="tool|task|project|session|day|file|bash|workflow"),
     limit: int = typer.Option(20, "--limit", "-n"),
-    project: Optional[str] = typer.Option(None, "--project", "-p"),
+    project: str | None = typer.Option(None, "--project", "-p"),
 ):
     """Print analytics tables to terminal."""
     conn = connect()
@@ -48,7 +54,8 @@ def report_cmd(
                         ROUND(SUM(attributed_cost_usd),4) cost_usd
                  FROM tool_calls"""
         if project:
-            sql += " WHERE project=?"; params = (project,)
+            sql += " WHERE project=?"
+            params = (project,)
         else:
             params = ()
         sql += " GROUP BY tool_name ORDER BY cost_usd DESC LIMIT ?"
@@ -139,7 +146,7 @@ def report_cmd(
 def export_cmd(
     table: str = typer.Argument(..., help="messages|tool_calls|tasks|sessions|file_activity"),
     fmt: str = typer.Option("json", "--format", "-f", help="json|csv"),
-    output: Optional[str] = typer.Option(None, "--output", "-o"),
+    output: str | None = typer.Option(None, "--output", "-o"),
 ):
     conn = connect()
     init_schema(conn)
@@ -149,7 +156,9 @@ def export_cmd(
         data = [dict(r) for r in rows]
         text = json.dumps(data, default=str, indent=2)
     elif fmt == "csv":
-        import csv, io
+        import csv
+        import io
+
         buf = io.StringIO()
         w = csv.writer(buf)
         w.writerow(cols)
@@ -161,6 +170,7 @@ def export_cmd(
         raise typer.Exit(2)
     if output:
         from pathlib import Path
+
         Path(output).write_text(text)
         console.print(f"wrote {len(rows)} rows → {output}")
     else:
@@ -175,7 +185,10 @@ def serve_cmd(
 ):
     """Start web dashboard at http://host:port. Auto-ingests on file changes."""
     import uvicorn
-    from .server import app as fastapi_app, start_watcher
+
+    from .server import app as fastapi_app
+    from .server import start_watcher
+
     if not no_watch:
         start_watcher()
     uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
@@ -191,14 +204,20 @@ def enrich_existing_cmd():
     Idempotent — extractors only fill missing values."""
     import json as _json
     from pathlib import Path as _Path
-    from .plugins import ExtractCtx, registry as _registry
+
+    from .plugins import ExtractCtx
+    from .plugins import registry as _registry
+
     _registry.load_all()
     conn = connect()
     init_schema(conn)
     # Map source_file -> set of tool_use_ids we need to refresh.
-    files = [r[0] for r in conn.execute(
-        "SELECT DISTINCT source_file FROM messages WHERE source_file IS NOT NULL"
-    ).fetchall()]
+    files = [
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT source_file FROM messages WHERE source_file IS NOT NULL"
+        ).fetchall()
+    ]
     console.print(f"Scanning [bold]{len(files)}[/] JSONL files...")
     updated_inserts = 0
     updated_results = 0
@@ -234,16 +253,20 @@ def enrich_existing_cmd():
                     if not row:
                         continue
                     ctx = ExtractCtx(
-                        session_id=session_id, project=project,
-                        source_file=str(p), target="tool_call",
-                        tool_name=row[0], tool_use_id=tool_id,
+                        session_id=session_id,
+                        project=project,
+                        source_file=str(p),
+                        target="tool_call",
+                        tool_name=row[0],
+                        tool_use_id=tool_id,
                         tool_input=blk.get("input") or {},
                     )
                     merged = _run_extractors(ctx, rec)
                     if merged:
                         cols = ", ".join(f"{k}=COALESCE(?, {k})" for k in merged)
-                        conn.execute(f"UPDATE tool_calls SET {cols} WHERE id=?",
-                                     (*merged.values(), tool_id))
+                        conn.execute(
+                            f"UPDATE tool_calls SET {cols} WHERE id=?", (*merged.values(), tool_id)
+                        )
                         updated_inserts += 1
             elif rtype == "user":
                 for blk in content:
@@ -254,36 +277,46 @@ def enrich_existing_cmd():
                         continue
                     row = conn.execute(
                         "SELECT tool_name, exit_code, is_error, interrupted "
-                        "FROM tool_calls WHERE id=?", (tool_id,)
+                        "FROM tool_calls WHERE id=?",
+                        (tool_id,),
                     ).fetchone()
                     if not row:
                         continue
                     raw = blk.get("content")
                     text = raw if isinstance(raw, str) else None
                     if isinstance(raw, list):
-                        text = "\n".join(
-                            x.get("text","") for x in raw if isinstance(x, dict)
-                        ) or None
+                        text = (
+                            "\n".join(x.get("text", "") for x in raw if isinstance(x, dict)) or None
+                        )
                     ctx = ExtractCtx(
-                        session_id=session_id, project=project,
-                        source_file=str(p), target="tool_call",
-                        tool_name=row[0], tool_use_id=tool_id,
-                        tool_result_text=text, exit_code=row[1],
-                        is_error=bool(row[2]), interrupted=bool(row[3]),
+                        session_id=session_id,
+                        project=project,
+                        source_file=str(p),
+                        target="tool_call",
+                        tool_name=row[0],
+                        tool_use_id=tool_id,
+                        tool_result_text=text,
+                        exit_code=row[1],
+                        is_error=bool(row[2]),
+                        interrupted=bool(row[3]),
                     )
                     merged = _run_extractors(ctx, rec)
                     if merged:
                         cols = ", ".join(f"{k}=COALESCE(?, {k})" for k in merged)
-                        conn.execute(f"UPDATE tool_calls SET {cols} WHERE id=?",
-                                     (*merged.values(), tool_id))
+                        conn.execute(
+                            f"UPDATE tool_calls SET {cols} WHERE id=?", (*merged.values(), tool_id)
+                        )
                         updated_results += 1
         conn.commit()
-    console.print(f"  updated {updated_inserts} tool_use enrichments, "
-                  f"{updated_results} tool_result enrichments")
+    console.print(
+        f"  updated {updated_inserts} tool_use enrichments, "
+        f"{updated_results} tool_result enrichments"
+    )
 
 
 def _run_extractors(ctx, rec):
     from .plugins import registry as _registry
+
     merged: dict = {}
     for ex in _registry.extractors.values():
         if "tool_call" not in ex.targets:
@@ -322,7 +355,7 @@ def dedupe_billing_cmd():
         "SELECT ROUND(SUM(cost_usd),2) FROM messages WHERE role='assistant'"
     ).fetchone()[0]
     console.print(f"  zeroed {n} duplicate billing rows")
-    console.print(f"  total cost: ${before:,.2f} → ${after:,.2f} (saved ${before-after:,.2f})")
+    console.print(f"  total cost: ${before:,.2f} → ${after:,.2f} (saved ${before - after:,.2f})")
 
 
 @app.command("prune-ephemeral")
@@ -337,9 +370,7 @@ def prune_ephemeral_cmd():
         cols = {c[1] for c in conn.execute(f"PRAGMA table_info({tbl})").fetchall()}
         if "project" not in cols:
             continue
-        n = conn.execute(
-            f"DELETE FROM {tbl} WHERE project LIKE '/private/tmp/agent/%'"
-        ).rowcount
+        n = conn.execute(f"DELETE FROM {tbl} WHERE project LIKE '/private/tmp/agent/%'").rowcount
         counts[f"{tbl} eph"] = n
     # Worktree paths: rewrite project to parent.
     rewrite_sql = (
@@ -371,6 +402,7 @@ def reparse_bash_cmd(
 ):
     """Re-run the bash parser on every stored Bash tool_call. Use after parser changes."""
     from .bash_parse import parse_bash
+
     conn = connect()
     init_schema(conn)
     total = conn.execute(
@@ -411,12 +443,15 @@ app.add_typer(extractors_app, name="extractors")
 @detectors_app.command("list")
 def detectors_list_cmd():
     from .plugins import registry as _registry
+
     _registry.load_all()
     if not _registry.detectors:
         console.print("[yellow]no detectors registered[/]")
         return
     t = Table(title="Detectors", show_lines=False)
-    t.add_column("name"); t.add_column("title"); t.add_column("requires")
+    t.add_column("name")
+    t.add_column("title")
+    t.add_column("requires")
     for d in _registry.detectors.values():
         t.add_row(d.name, d.title, ", ".join(d.requires) or "—")
     console.print(t)
@@ -425,13 +460,14 @@ def detectors_list_cmd():
 @detectors_app.command("run")
 def detectors_run_cmd(
     name: str = typer.Argument(..., help="Detector name. See `detectors list`."),
-    project: Optional[str] = typer.Option(None, "--project", "-p"),
-    session_id: Optional[str] = typer.Option(None, "--session"),
-    since: Optional[str] = typer.Option(None, "--since"),
-    until: Optional[str] = typer.Option(None, "--until"),
+    project: str | None = typer.Option(None, "--project", "-p"),
+    session_id: str | None = typer.Option(None, "--session"),
+    since: str | None = typer.Option(None, "--since"),
+    until: str | None = typer.Option(None, "--until"),
     param: list[str] = typer.Option([], "--param", help="key=value (repeatable)"),
 ):
     from .plugins import registry as _registry
+
     _registry.load_all()
     if name not in _registry.detectors:
         console.print(f"[red]unknown detector: {name}[/]")
@@ -441,22 +477,34 @@ def detectors_run_cmd(
     for p in param:
         if "=" in p:
             k, v = p.split("=", 1)
-            try: v = int(v)
+            try:
+                v = int(v)
             except ValueError:
-                try: v = float(v)
-                except ValueError: pass
+                try:
+                    v = float(v)
+                except ValueError:
+                    pass
             params[k.strip()] = v
-    filters = {k: v for k, v in {
-        "project": project, "session_id": session_id, "since": since, "until": until
-    }.items() if v}
-    conn = connect(); init_schema(conn)
+    filters = {
+        k: v
+        for k, v in {
+            "project": project,
+            "session_id": session_id,
+            "since": since,
+            "until": until,
+        }.items()
+        if v
+    }
+    conn = connect()
+    init_schema(conn)
     rows = _registry.detectors[name].run(conn, filters, params)
     if not rows:
         console.print(f"[yellow]{name}: no findings[/]")
         return
     cols = sorted({k for r in rows for k in r}, key=lambda c: (c != "session_id", c))
     t = Table(title=f"{name} ({len(rows)} findings)", show_lines=False)
-    for c in cols: t.add_column(c, overflow="fold")
+    for c in cols:
+        t.add_column(c, overflow="fold")
     for r in rows[:50]:
         t.add_row(*[str(r.get(c, "")) if r.get(c) is not None else "" for c in cols])
     console.print(t)
@@ -465,12 +513,16 @@ def detectors_run_cmd(
 @extractors_app.command("list")
 def extractors_list_cmd():
     from .plugins import registry as _registry
+
     _registry.load_all()
     if not _registry.extractors:
         console.print("[yellow]no extractors registered[/]")
         return
     t = Table(title="Extractors", show_lines=False)
-    t.add_column("name"); t.add_column("version"); t.add_column("targets"); t.add_column("fields")
+    t.add_column("name")
+    t.add_column("version")
+    t.add_column("targets")
+    t.add_column("fields")
     for e in _registry.extractors.values():
         t.add_row(e.name, e.version, ", ".join(e.targets), ", ".join(e.fields()))
     console.print(t)
@@ -488,7 +540,9 @@ def mcp_cmd():
             {"command": "/path/to/.venv/bin/tokenscope", "args": ["mcp"]}}}
     """
     import asyncio
+
     from .mcp_server import main
+
     asyncio.run(main())
 
 

@@ -1,4 +1,5 @@
 """Plugin registry — loads built-ins, entry-points, and user-dir plugins."""
+
 from __future__ import annotations
 
 import importlib
@@ -11,8 +12,7 @@ from typing import Any
 from .base import Aggregator, Detector, Extractor
 
 USER_PLUGIN_DIR = Path(
-    os.environ.get("TOKENSCOPE_PLUGIN_DIR")
-    or Path.home() / ".config" / "tokenscope" / "plugins"
+    os.environ.get("TOKENSCOPE_PLUGIN_DIR") or Path.home() / ".config" / "tokenscope" / "plugins"
 )
 
 ENTRY_POINT_GROUPS = {
@@ -110,8 +110,12 @@ class Registry:
     def list_summaries(self) -> dict[str, list[dict[str, Any]]]:
         return {
             "extractors": [
-                {"name": e.name, "version": e.version, "targets": list(e.targets),
-                 "fields": e.fields()}
+                {
+                    "name": e.name,
+                    "version": e.version,
+                    "targets": list(e.targets),
+                    "fields": e.fields(),
+                }
                 for e in self.extractors.values()
             ],
             "aggregators": [
@@ -119,8 +123,13 @@ class Registry:
                 for a in self.aggregators.values()
             ],
             "detectors": [
-                {"name": d.name, "title": d.title, "description": d.description,
-                 "params_schema": d.params_schema, "requires": list(d.requires)}
+                {
+                    "name": d.name,
+                    "title": d.title,
+                    "description": d.description,
+                    "params_schema": d.params_schema,
+                    "requires": list(d.requires),
+                }
                 for d in self.detectors.values()
             ],
         }

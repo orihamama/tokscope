@@ -5,6 +5,7 @@ agent should have used Grep instead of paging.
 Requires: read_range extractor (read_offset/read_limit columns) — falls back
 to result_lines<500 heuristic when offset/limit unavailable.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -43,14 +44,14 @@ class PagingReads:
                  ROUND(AVG(NULLIF(result_bytes,0)),0) avg_bytes,
                  ROUND(SUM(attributed_cost_usd),4) cost
           FROM tool_calls
-          {tc_w + ' AND ' if tc_w else ' WHERE '}
+          {tc_w + " AND " if tc_w else " WHERE "}
             tool_name='Read' AND file_path IS NOT NULL
           GROUP BY session_id, file_path
           HAVING pages >= ?
         ),
         greps AS (
           SELECT DISTINCT session_id FROM tool_calls
-          {tc_w + ' AND ' if tc_w else ' WHERE '} tool_name='Grep'
+          {tc_w + " AND " if tc_w else " WHERE "} tool_name='Grep'
         )
         SELECT rp.session_id, rp.file_path, rp.pages, rp.paged_calls,
                rp.avg_bytes, rp.cost

@@ -2,6 +2,7 @@
 
 Surfaces agents looping on bash permissions the user has denied.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -35,7 +36,7 @@ class PermissionDenials:
                GROUP_CONCAT(DISTINCT SUBSTR(bash_command,1,40)) sample_cmds,
                GROUP_CONCAT(DISTINCT SUBSTR(result_text_snippet,1,80)) sample_results
         FROM tool_calls
-        {tc_w + ' AND ' if tc_w else ' WHERE '} status_class='denied'
+        {tc_w + " AND " if tc_w else " WHERE "} status_class='denied'
         GROUP BY session_id, project
         HAVING denials >= ?
         ORDER BY denials DESC LIMIT 30

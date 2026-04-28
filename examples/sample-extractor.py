@@ -10,6 +10,7 @@ per-host analytics. After installing, run:
 
 to backfill the column on existing rows.
 """
+
 from __future__ import annotations
 
 from urllib.parse import urlparse

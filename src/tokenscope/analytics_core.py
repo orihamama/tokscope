@@ -4,6 +4,7 @@ All functions take a `filters: dict` with optional keys
 {project, session_id, task_id, tool, since, until} and return JSON-serializable
 plain Python (dicts / lists). No FastAPI types here.
 """
+
 from __future__ import annotations
 
 import math
@@ -40,11 +41,15 @@ def _build_filters(f: Filters | None) -> tuple[str, tuple, str, tuple]:
     tc_w: list[str] = []
     tc_p: list = []
     if project:
-        msg_w.append("project = ?"); msg_p.append(project)
-        tc_w.append("project = ?"); tc_p.append(project)
+        msg_w.append("project = ?")
+        msg_p.append(project)
+        tc_w.append("project = ?")
+        tc_p.append(project)
     if session_id:
-        msg_w.append("session_id = ?"); msg_p.append(session_id)
-        tc_w.append("session_id = ?"); tc_p.append(session_id)
+        msg_w.append("session_id = ?")
+        msg_p.append(session_id)
+        tc_w.append("session_id = ?")
+        tc_p.append(session_id)
     if task_id:
         msg_w.append(
             "(agent_id = (SELECT agent_id FROM tool_calls WHERE id=?) "
@@ -57,25 +62,34 @@ def _build_filters(f: Filters | None) -> tuple[str, tuple, str, tuple]:
         )
         tc_p.extend([task_id, task_id])
     if tool:
-        tc_w.append("tool_name = ?"); tc_p.append(tool)
+        tc_w.append("tool_name = ?")
+        tc_p.append(tool)
     if since:
         s_str = str(since)
         ts = int(s_str) if s_str.isdigit() else None
         if ts is None:
-            msg_w.append("timestamp >= (strftime('%s', ?)*1000)"); msg_p.append(s_str)
-            tc_w.append("timestamp >= (strftime('%s', ?)*1000)"); tc_p.append(s_str)
+            msg_w.append("timestamp >= (strftime('%s', ?)*1000)")
+            msg_p.append(s_str)
+            tc_w.append("timestamp >= (strftime('%s', ?)*1000)")
+            tc_p.append(s_str)
         else:
-            msg_w.append("timestamp >= ?"); msg_p.append(ts)
-            tc_w.append("timestamp >= ?"); tc_p.append(ts)
+            msg_w.append("timestamp >= ?")
+            msg_p.append(ts)
+            tc_w.append("timestamp >= ?")
+            tc_p.append(ts)
     if until:
         u_str = str(until)
         ts = int(u_str) if u_str.isdigit() else None
         if ts is None:
-            msg_w.append("timestamp <= (strftime('%s', ?)*1000)"); msg_p.append(u_str)
-            tc_w.append("timestamp <= (strftime('%s', ?)*1000)"); tc_p.append(u_str)
+            msg_w.append("timestamp <= (strftime('%s', ?)*1000)")
+            msg_p.append(u_str)
+            tc_w.append("timestamp <= (strftime('%s', ?)*1000)")
+            tc_p.append(u_str)
         else:
-            msg_w.append("timestamp <= ?"); msg_p.append(ts)
-            tc_w.append("timestamp <= ?"); tc_p.append(ts)
+            msg_w.append("timestamp <= ?")
+            msg_p.append(ts)
+            tc_w.append("timestamp <= ?")
+            tc_p.append(ts)
     msg_clause = (" WHERE " + " AND ".join(msg_w)) if msg_w else ""
     tc_clause = (" WHERE " + " AND ".join(tc_w)) if tc_w else ""
     return msg_clause, tuple(msg_p), tc_clause, tuple(tc_p)
@@ -95,6 +109,7 @@ def _delta_pct(cur: float, prev: float) -> float | None:
 
 
 # ---------- overview with period-over-period ---------------------------
+
 
 def overview(filters: Filters | None = None) -> dict:
     c = _conn()
@@ -129,26 +144,41 @@ def overview(filters: Filters | None = None) -> dict:
               COALESCE(SUM(thinking_tokens),0) thinking,
               COALESCE(SUM(is_compact_summary),0) compactions,
               COALESCE(SUM(is_api_error),0) api_errors
-           FROM messages{msg_w_nt}""", msg_p_nt).fetchone()
+           FROM messages{msg_w_nt}""",
+        msg_p_nt,
+    ).fetchone()
 
     cache_hit = None
-    cr = spend_row["cache_read"]; it = spend_row["input"]
+    cr = spend_row["cache_read"]
+    it = spend_row["input"]
     if cr + it > 0:
         cache_hit = round(cr / (cr + it), 4)
 
-    top_projects = _rows(c, f"""
+    top_projects = _rows(
+        c,
+        f"""
         SELECT project, ROUND(SUM(cost_usd),4) cost, COUNT(*) msgs
         FROM messages{msg_w_nt}
-        GROUP BY project ORDER BY cost DESC LIMIT 8""", msg_p_nt)
-    top_tools = _rows(c, f"""
+        GROUP BY project ORDER BY cost DESC LIMIT 8""",
+        msg_p_nt,
+    )
+    top_tools = _rows(
+        c,
+        f"""
         SELECT tool_name, COUNT(*) calls, ROUND(SUM(attributed_cost_usd),4) cost
         FROM tool_calls{tc_w}
-        GROUP BY tool_name ORDER BY cost DESC LIMIT 10""", tc_p)
-    sparkline = _rows(c, f"""
+        GROUP BY tool_name ORDER BY cost DESC LIMIT 10""",
+        tc_p,
+    )
+    sparkline = _rows(
+        c,
+        f"""
         SELECT DATE(timestamp/1000,'unixepoch') day, ROUND(SUM(cost_usd),4) cost
         FROM messages{msg_w_nt}
-          {'AND' if msg_w_nt else 'WHERE'} timestamp IS NOT NULL
-        GROUP BY day ORDER BY day DESC LIMIT 30""", msg_p_nt)
+          {"AND" if msg_w_nt else "WHERE"} timestamp IS NOT NULL
+        GROUP BY day ORDER BY day DESC LIMIT 30""",
+        msg_p_nt,
+    )
 
     return {
         "spend": {
@@ -189,14 +219,19 @@ def overview(filters: Filters | None = None) -> dict:
 # ---------- top costs --------------------------------------------------
 
 _TOP_COSTS_BY = {
-    "tool":            ("tool_calls",  "tool_name",                       "attributed_cost_usd", "tc"),
-    "project":         ("messages",    "project",                         "cost_usd",            "msg"),
-    "session":         ("messages",    "session_id",                      "cost_usd",            "msg"),
-    "task":            ("tasks",       "root_tool_use_id",                "total_cost_usd",      "task"),
-    "file":            ("tool_calls",  "file_path",                       "attributed_cost_usd", "tc_file"),
-    "bash_program":    ("tool_calls",  "bash_program",                    "attributed_cost_usd", "tc_bash"),
-    "bash_subcommand": ("tool_calls",  "COALESCE(bash_subcommand,'(none)')", "attributed_cost_usd", "tc_bash"),
-    "model":           ("messages",    "model",                           "cost_usd",            "msg"),
+    "tool": ("tool_calls", "tool_name", "attributed_cost_usd", "tc"),
+    "project": ("messages", "project", "cost_usd", "msg"),
+    "session": ("messages", "session_id", "cost_usd", "msg"),
+    "task": ("tasks", "root_tool_use_id", "total_cost_usd", "task"),
+    "file": ("tool_calls", "file_path", "attributed_cost_usd", "tc_file"),
+    "bash_program": ("tool_calls", "bash_program", "attributed_cost_usd", "tc_bash"),
+    "bash_subcommand": (
+        "tool_calls",
+        "COALESCE(bash_subcommand,'(none)')",
+        "attributed_cost_usd",
+        "tc_bash",
+    ),
+    "model": ("messages", "model", "cost_usd", "msg"),
 }
 
 
@@ -217,7 +252,8 @@ def top_costs(by: str, limit: int = 20, filters: Filters | None = None) -> list[
 
     if mode == "tc_file":
         clause = (tc_w + " AND " if tc_w else " WHERE ") + (
-            "file_path IS NOT NULL AND tool_name IN ('Read','Edit','Write','MultiEdit')")
+            "file_path IS NOT NULL AND tool_name IN ('Read','Edit','Write','MultiEdit')"
+        )
         sql = f"""SELECT {key} AS key, COUNT(*) calls, SUM(is_error) errors,
                          ROUND(SUM({cost_col}),4) cost,
                          COUNT(DISTINCT session_id) sessions
@@ -227,7 +263,8 @@ def top_costs(by: str, limit: int = 20, filters: Filters | None = None) -> list[
 
     if mode == "tc_bash":
         clause = (tc_w + " AND " if tc_w else " WHERE ") + (
-            "tool_name='Bash' AND bash_program IS NOT NULL")
+            "tool_name='Bash' AND bash_program IS NOT NULL"
+        )
         sql = f"""SELECT {key} AS key, COUNT(*) calls, SUM(is_error) errors,
                          ROUND(SUM({cost_col}),4) cost
                   FROM tool_calls{clause}
@@ -268,32 +305,47 @@ def top_costs(by: str, limit: int = 20, filters: Filters | None = None) -> list[
 
 # ---------- session detail (deep dive) ---------------------------------
 
+
 def session_detail(session_id: str) -> dict:
     c = _conn()
     sess = c.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
     if not sess:
         return {"error": f"session not found: {session_id}"}
-    timeline = _rows(c, """
+    timeline = _rows(
+        c,
+        """
         SELECT timestamp, role, model, input_tokens, output_tokens,
                cache_creation, cache_read, thinking_tokens, cost_usd,
                is_compact_summary, is_api_error
         FROM messages WHERE session_id=? AND timestamp IS NOT NULL
-        ORDER BY timestamp""", (session_id,))
-    tool_breakdown = _rows(c, """
+        ORDER BY timestamp""",
+        (session_id,),
+    )
+    tool_breakdown = _rows(
+        c,
+        """
         SELECT tool_name, COUNT(*) calls,
                ROUND(SUM(attributed_cost_usd),4) cost,
                SUM(is_error) errors,
                ROUND(AVG(NULLIF(duration_ms,0)),0) avg_ms
         FROM tool_calls WHERE session_id=?
-        GROUP BY tool_name ORDER BY cost DESC""", (session_id,))
-    bash_breakdown = _rows(c, """
+        GROUP BY tool_name ORDER BY cost DESC""",
+        (session_id,),
+    )
+    bash_breakdown = _rows(
+        c,
+        """
         SELECT COALESCE(bash_program,'(unknown)') program,
                COALESCE(bash_subcommand,'(none)') subcommand,
                COUNT(*) calls, SUM(is_error) errors,
                ROUND(SUM(attributed_cost_usd),4) cost
         FROM tool_calls WHERE session_id=? AND tool_name='Bash'
-        GROUP BY program, subcommand ORDER BY cost DESC LIMIT 30""", (session_id,))
-    file_activity_rows = _rows(c, """
+        GROUP BY program, subcommand ORDER BY cost DESC LIMIT 30""",
+        (session_id,),
+    )
+    file_activity_rows = _rows(
+        c,
+        """
         SELECT file_path,
                SUM(CASE WHEN tool_name='Read' THEN 1 ELSE 0 END) reads,
                SUM(CASE WHEN tool_name='Edit' THEN 1 ELSE 0 END) edits,
@@ -302,17 +354,25 @@ def session_detail(session_id: str) -> dict:
         FROM tool_calls
         WHERE session_id=? AND file_path IS NOT NULL
               AND tool_name IN ('Read','Edit','Write','MultiEdit')
-        GROUP BY file_path ORDER BY (reads+edits+writes) DESC LIMIT 30""", (session_id,))
+        GROUP BY file_path ORDER BY (reads+edits+writes) DESC LIMIT 30""",
+        (session_id,),
+    )
     # reasoning + cache aggregate for this session
-    rc_row = c.execute("""
+    rc_row = c.execute(
+        """
         SELECT COALESCE(SUM(input_tokens),0) inp,
                COALESCE(SUM(output_tokens),0) out,
                COALESCE(SUM(cache_read),0) cr,
                COALESCE(SUM(cache_creation),0) cc,
                COALESCE(SUM(thinking_tokens),0) think,
                ROUND(SUM(cost_usd),4) cost
-        FROM messages WHERE session_id=?""", (session_id,)).fetchone()
-    inp = rc_row["inp"]; cr = rc_row["cr"]; out = rc_row["out"]; cc = rc_row["cc"]
+        FROM messages WHERE session_id=?""",
+        (session_id,),
+    ).fetchone()
+    inp = rc_row["inp"]
+    cr = rc_row["cr"]
+    out = rc_row["out"]
+    cc = rc_row["cc"]
     rc_summary = {
         "input_tokens": inp,
         "output_tokens": out,
@@ -335,6 +395,7 @@ def session_detail(session_id: str) -> dict:
 
 
 # ---------- reasoning + cache aggregations -----------------------------
+
 
 def reasoning_cache(group_by: str = "model", filters: Filters | None = None) -> list[dict]:
     if group_by not in {"model", "session", "project", "day"}:
@@ -364,23 +425,29 @@ def reasoning_cache(group_by: str = "model", filters: Filters | None = None) -> 
     raw = _rows(c, sql, msg_p_nt + (_LIMIT_CAP,))
     out = []
     for r in raw:
-        inp = r["inp"]; cr = r["cr"]; ot = r["out"]; cc = r["cc"]
-        out.append({
-            "key": r["key"],
-            "cost": r["cost"],
-            "input_tokens": inp,
-            "output_tokens": ot,
-            "cache_read": cr,
-            "cache_creation": cc,
-            "thinking_tokens": r["think"],
-            "cache_hit_ratio": round(cr / (cr + inp), 4) if (cr + inp) else None,
-            "cache_creation_pct": round(cc / (inp + cc), 4) if (inp + cc) else None,
-            "thinking_pct_of_output": round(r["think"] / ot, 4) if ot else None,
-        })
+        inp = r["inp"]
+        cr = r["cr"]
+        ot = r["out"]
+        cc = r["cc"]
+        out.append(
+            {
+                "key": r["key"],
+                "cost": r["cost"],
+                "input_tokens": inp,
+                "output_tokens": ot,
+                "cache_read": cr,
+                "cache_creation": cc,
+                "thinking_tokens": r["think"],
+                "cache_hit_ratio": round(cr / (cr + inp), 4) if (cr + inp) else None,
+                "cache_creation_pct": round(cc / (inp + cc), 4) if (inp + cc) else None,
+                "thinking_pct_of_output": round(r["think"] / ot, 4) if ot else None,
+            }
+        )
     return out
 
 
 # ---------- detectors --------------------------------------------------
+
 
 def duplicate_reads(filters: Filters | None = None, min_dups: int = 2) -> list[dict]:
     min_dups = max(1, min(int(min_dups), 50))
@@ -429,7 +496,9 @@ def bash_retries(filters: Filters | None = None, window_s: int = 60) -> list[dic
     return _rows(c, sql, tc_p + (window_s, _LIMIT_CAP))
 
 
-def error_chains(filters: Filters | None = None, min_n: int = 5, min_rate: float = 0.2) -> list[dict]:
+def error_chains(
+    filters: Filters | None = None, min_n: int = 5, min_rate: float = 0.2
+) -> list[dict]:
     min_n = max(1, min(int(min_n), 1000))
     min_rate = max(0.0, min(float(min_rate), 1.0))
     c = _conn()
@@ -454,16 +523,22 @@ def cost_outliers(filters: Filters | None = None, z_min: float = 2.0) -> list[di
     msg_w_nt, msg_p_nt = _filters_no_tool(filters)
     # Filter sessions by their own project/timestamp via the messages join only when filters present.
     if msg_w_nt:
-        rows = _rows(c, f"""
+        rows = _rows(
+            c,
+            f"""
             SELECT s.session_id, s.project, s.total_cost_usd cost, s.message_count msgs
             FROM sessions s
             WHERE s.total_cost_usd > 0
               AND s.session_id IN (SELECT DISTINCT session_id FROM messages{msg_w_nt})""",
-            msg_p_nt)
+            msg_p_nt,
+        )
     else:
-        rows = _rows(c, """
+        rows = _rows(
+            c,
+            """
             SELECT session_id, project, total_cost_usd cost, message_count msgs
-            FROM sessions WHERE total_cost_usd > 0""")
+            FROM sessions WHERE total_cost_usd > 0""",
+        )
     by_proj: dict[str, list[dict]] = {}
     for r in rows:
         by_proj.setdefault(r["project"] or "(none)", []).append(r)
@@ -480,14 +555,16 @@ def cost_outliers(filters: Filters | None = None, z_min: float = 2.0) -> list[di
         for r in items:
             z = (r["cost"] - mu) / sigma
             if z >= z_min:
-                out.append({
-                    "session_id": r["session_id"],
-                    "project": proj,
-                    "cost": round(r["cost"], 4),
-                    "msgs": r["msgs"],
-                    "project_mean_cost": round(mu, 4),
-                    "z_score": round(z, 2),
-                })
+                out.append(
+                    {
+                        "session_id": r["session_id"],
+                        "project": proj,
+                        "cost": round(r["cost"], 4),
+                        "msgs": r["msgs"],
+                        "project_mean_cost": round(mu, 4),
+                        "z_score": round(z, 2),
+                    }
+                )
     out.sort(key=lambda r: r["z_score"], reverse=True)
     return out[:_LIMIT_CAP]
 
@@ -550,6 +627,7 @@ def insights(filters: Filters | None = None) -> dict:
     don't need to know about plugin internals.
     """
     from .plugins import registry as _registry
+
     _registry.load_all()
     c = _conn()
     f = filters or {}
@@ -589,10 +667,20 @@ def insights(filters: Filters | None = None) -> dict:
                 biggest_score = score
                 biggest = {
                     "detector": name,
-                    "row": {k: v for k, v in r.items()
-                            if k in ("prev_tool", "next_tool", "session_id",
-                                     "file_path", "bash_command", "status_class_top",
-                                     "recommendation")},
+                    "row": {
+                        k: v
+                        for k, v in r.items()
+                        if k
+                        in (
+                            "prev_tool",
+                            "next_tool",
+                            "session_id",
+                            "file_path",
+                            "bash_command",
+                            "status_class_top",
+                            "recommendation",
+                        )
+                    },
                 }
     out["summary"] = {
         "real_errors": real_errs,
@@ -621,23 +709,29 @@ def _inefficient_sessions(filters: Filters | None = None) -> list[dict]:
     raw = _rows(c, sql, msg_p_nt + (_LIMIT_CAP,))
     out = []
     for r in raw:
-        inp = r["inp"]; cr = r["cr"]; ot = r["out"]; cc = r["cc"]
-        out.append({
-            "session_id": r["session_id"],
-            "project": r["project"],
-            "cost": r["cost"],
-            "cache_hit_ratio": round(cr / (cr + inp), 4) if (cr + inp) else None,
-            "cache_creation_pct": round(cc / (inp + cc), 4) if (inp + cc) else None,
-            "thinking_pct_of_output": round(r["think"] / ot, 4) if ot else None,
-            "input_tokens": inp,
-            "output_tokens": ot,
-            "cache_read": cr,
-            "cache_creation": cc,
-        })
+        inp = r["inp"]
+        cr = r["cr"]
+        ot = r["out"]
+        cc = r["cc"]
+        out.append(
+            {
+                "session_id": r["session_id"],
+                "project": r["project"],
+                "cost": r["cost"],
+                "cache_hit_ratio": round(cr / (cr + inp), 4) if (cr + inp) else None,
+                "cache_creation_pct": round(cc / (inp + cc), 4) if (inp + cc) else None,
+                "thinking_pct_of_output": round(r["think"] / ot, 4) if ot else None,
+                "input_tokens": inp,
+                "output_tokens": ot,
+                "cache_read": cr,
+                "cache_creation": cc,
+            }
+        )
     return out
 
 
 # ---------- DB schema as markdown (for MCP resource) -------------------
+
 
 def schema_markdown() -> str:
     c = _conn()

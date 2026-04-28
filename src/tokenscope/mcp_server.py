@@ -4,6 +4,7 @@ Run via:  tokenscope mcp
 Configure in Claude Code:
   claude mcp add tokenscope /path/to/.venv/bin/tokenscope mcp
 """
+
 from __future__ import annotations
 
 import json
@@ -24,12 +25,15 @@ _FILTERS_SCHEMA = {
     "type": "object",
     "description": "Optional filters; all keys optional",
     "properties": {
-        "project":    {"type": "string", "description": "Project name (use list_projects via get_top_costs)"},
+        "project": {
+            "type": "string",
+            "description": "Project name (use list_projects via get_top_costs)",
+        },
         "session_id": {"type": "string"},
-        "task_id":    {"type": "string", "description": "root_tool_use_id of an Agent invocation"},
-        "tool":       {"type": "string", "description": "Tool name (Bash, Read, Edit, etc.)"},
-        "since":      {"type": "string", "description": "ISO date YYYY-MM-DD or epoch ms"},
-        "until":      {"type": "string", "description": "ISO date YYYY-MM-DD or epoch ms"},
+        "task_id": {"type": "string", "description": "root_tool_use_id of an Agent invocation"},
+        "tool": {"type": "string", "description": "Tool name (Bash, Read, Edit, etc.)"},
+        "since": {"type": "string", "description": "ISO date YYYY-MM-DD or epoch ms"},
+        "until": {"type": "string", "description": "ISO date YYYY-MM-DD or epoch ms"},
     },
     "additionalProperties": False,
 }
@@ -55,13 +59,12 @@ def _payload(name: str, args: dict[str, Any]) -> Any:
     if name == "find_bash_retries":
         return core.bash_retries(f, int(args.get("window_s", 60)))
     if name == "find_error_chains":
-        return core.error_chains(f,
-                                  int(args.get("min_n", 5)),
-                                  float(args.get("min_rate", 0.2)))
+        return core.error_chains(f, int(args.get("min_n", 5)), float(args.get("min_rate", 0.2)))
     if name == "find_compaction_root":
         return core.compaction_root(args.get("session_id"), f)
     if name == "investigate":
         from .investigate import investigate as _inv
+
         return _inv(
             session_id=args.get("session_id"),
             target=args.get("target", "auto"),
@@ -113,8 +116,16 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "by": {
                         "type": "string",
-                        "enum": ["tool", "project", "session", "task", "file",
-                                 "bash_program", "bash_subcommand", "model"],
+                        "enum": [
+                            "tool",
+                            "project",
+                            "session",
+                            "task",
+                            "file",
+                            "bash_program",
+                            "bash_subcommand",
+                            "model",
+                        ],
                     },
                     "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
                     "filters": _FILTERS_SCHEMA,
@@ -257,6 +268,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 
 # ---------- resources ----------
+
 
 @app.list_resources()
 async def list_resources() -> list[Resource]:

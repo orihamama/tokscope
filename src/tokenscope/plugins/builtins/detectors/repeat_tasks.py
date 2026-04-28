@@ -4,13 +4,13 @@
 Surfaces tasks the user keeps spawning manually that could be cached,
 templated, or automated.
 """
+
 from __future__ import annotations
 
 import re
 
 from ....analytics_core import _build_filters
 from ...registry import registry
-
 
 _NORM_RE = re.compile(r"\s+")
 
@@ -60,18 +60,23 @@ class RepeatTasks:
             if not sig:
                 continue
             key = (r["agent_type"] or "?", sig)
-            slot = groups.setdefault(key, {
-                "agent_type": key[0],
-                "description_sig": sig,
-                "repeats": 0,
-                "total_cost": 0.0,
-                "projects": set(),
-                "sessions": set(),
-            })
+            slot = groups.setdefault(
+                key,
+                {
+                    "agent_type": key[0],
+                    "description_sig": sig,
+                    "repeats": 0,
+                    "total_cost": 0.0,
+                    "projects": set(),
+                    "sessions": set(),
+                },
+            )
             slot["repeats"] += 1
             slot["total_cost"] += r["cost"] or 0.0
-            if r["project"]: slot["projects"].add(r["project"])
-            if r["session_id"]: slot["sessions"].add(r["session_id"])
+            if r["project"]:
+                slot["projects"].add(r["project"])
+            if r["session_id"]:
+                slot["sessions"].add(r["session_id"])
         out = []
         for slot in groups.values():
             if slot["repeats"] < min_repeats:

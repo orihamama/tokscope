@@ -4,6 +4,7 @@ Compares total lines read against unique lines covered by merging
 [read_offset, read_offset+result_lines] intervals. High redundancy_factor
 flags genuinely wasted re-reads that cache cannot fully neutralise.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -50,16 +51,22 @@ class RedundantReadRanges:
         SELECT session_id, file_path, read_offset, read_limit, result_lines,
                attributed_cost_usd cost
         FROM tool_calls
-        {tc_w + ' AND ' if tc_w else ' WHERE '}
+        {tc_w + " AND " if tc_w else " WHERE "}
             tool_name='Read' AND file_path IS NOT NULL
         """
         per_pair: dict[tuple, dict] = {}
         for r in conn.execute(sql, tc_p):
             key = (r["session_id"], r["file_path"])
-            slot = per_pair.setdefault(key, {
-                "intervals": [], "reads": 0, "total_lines": 0, "cost": 0.0,
-                "with_offset": 0,
-            })
+            slot = per_pair.setdefault(
+                key,
+                {
+                    "intervals": [],
+                    "reads": 0,
+                    "total_lines": 0,
+                    "cost": 0.0,
+                    "with_offset": 0,
+                },
+            )
             slot["reads"] += 1
             slot["cost"] += r["cost"] or 0.0
             offset = r["read_offset"]
@@ -88,20 +95,21 @@ class RedundantReadRanges:
             if ratio < min_redundancy:
                 continue
             wasted = round(s["cost"] * (1 - 1 / ratio), 4)
-            out.append({
-                "session_id": sid,
-                "file_path": fp,
-                "reads": s["reads"],
-                "with_offset_calls": s["with_offset"],
-                "total_lines_read": s["total_lines"],
-                "unique_lines_covered": unique,
-                "redundancy_factor": round(ratio, 2),
-                "cost": round(s["cost"], 4),
-                "wasted_cost_estimate": wasted,
-                "recommendation": _rec(s["reads"], ratio, fp),
-            })
-        out.sort(key=lambda r: (r["wasted_cost_estimate"], r["redundancy_factor"]),
-                 reverse=True)
+            out.append(
+                {
+                    "session_id": sid,
+                    "file_path": fp,
+                    "reads": s["reads"],
+                    "with_offset_calls": s["with_offset"],
+                    "total_lines_read": s["total_lines"],
+                    "unique_lines_covered": unique,
+                    "redundancy_factor": round(ratio, 2),
+                    "cost": round(s["cost"], 4),
+                    "wasted_cost_estimate": wasted,
+                    "recommendation": _rec(s["reads"], ratio, fp),
+                }
+            )
+        out.sort(key=lambda r: (r["wasted_cost_estimate"], r["redundancy_factor"]), reverse=True)
         return out[:50]
 
 

@@ -2,6 +2,7 @@
 'agent_busy', meaning the agent spawned a new task while a prior one was
 still running. Indicates a concurrency bug in the workflow.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -26,7 +27,7 @@ class AgentRaces:
                COUNT(*) races,
                GROUP_CONCAT(DISTINCT SUBSTR(result_text_snippet,1,80)) samples
         FROM tool_calls
-        {tc_w + ' AND ' if tc_w else ' WHERE '} status_class='agent_busy'
+        {tc_w + " AND " if tc_w else " WHERE "} status_class='agent_busy'
         GROUP BY session_id, project ORDER BY races DESC LIMIT 30
         """
         rows = [dict(r) for r in conn.execute(sql, tc_p).fetchall()]

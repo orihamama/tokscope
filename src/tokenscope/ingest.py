@@ -1,10 +1,10 @@
 """Ingest pipeline: discover → parse → turn-assemble → attribute → write."""
+
 from __future__ import annotations
-import json
+
 import sqlite3
 import time
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 from typing import Any
 
 from .attribution import byte_size, split_proportional
@@ -12,7 +12,8 @@ from .bash_parse import parse_bash
 from .db import bump_etag, connect, init_schema, transaction
 from .discovery import JsonlFile, discover
 from .parser import iter_records
-from .plugins import ExtractCtx, registry as plugin_registry
+from .plugins import ExtractCtx
+from .plugins import registry as plugin_registry
 from .pricing import calc_cost
 
 # Tools whose input includes a file path
@@ -50,7 +51,7 @@ def _ts_to_ms(ts: Any) -> int | None:
             s = ts.replace("Z", "+00:00")
             dt = datetime.fromisoformat(s)
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
+                dt = dt.replace(tzinfo=UTC)
             return int(dt.timestamp() * 1000)
         except Exception:
             return None
@@ -169,9 +170,7 @@ class FileIngester:
         service_tier = usage.get("service_tier")
 
         thinking_chars = sum(
-            len((b or {}).get("thinking", "") or "")
-            for b in content
-            if _is_thinking(b)
+            len((b or {}).get("thinking", "") or "") for b in content if _is_thinking(b)
         )
         thinking_tokens = thinking_chars // 4  # rough heuristic
 
@@ -299,16 +298,36 @@ class FileIngester:
                     self.session_id,
                     self.project,
                     ts_ms,
-                    None, None, None, None,
-                    0, 0, 0, 0, None,
-                    0, attr_out, 0, 0, attr_cost,
+                    None,
+                    None,
+                    None,
+                    None,
+                    0,
+                    0,
+                    0,
+                    0,
+                    None,
+                    0,
+                    attr_out,
+                    0,
+                    0,
+                    attr_cost,
                     rec.get("parentToolUseID"),
-                    denorm["bash_command"], denorm["bash_background"], denorm["bash_sandbox_disabled"],
-                    denorm["file_path"], denorm["search_pattern"],
-                    denorm["agent_subtype"], denorm["agent_description"],
-                    denorm["web_url"], denorm["web_query"], None,
-                    denorm["bash_program"], denorm["bash_subcommand"], denorm["bash_category"],
-                    denorm["bash_pipe_count"], denorm["bash_has_sudo"],
+                    denorm["bash_command"],
+                    denorm["bash_background"],
+                    denorm["bash_sandbox_disabled"],
+                    denorm["file_path"],
+                    denorm["search_pattern"],
+                    denorm["agent_subtype"],
+                    denorm["agent_description"],
+                    denorm["web_url"],
+                    denorm["web_query"],
+                    None,
+                    denorm["bash_program"],
+                    denorm["bash_subcommand"],
+                    denorm["bash_category"],
+                    denorm["bash_pipe_count"],
+                    denorm["bash_has_sudo"],
                 ),
             )
             self.pending[tool_id] = {
@@ -335,13 +354,14 @@ class FileIngester:
         if not isinstance(content, list):
             return
         tool_results = [
-            b for b in content
-            if isinstance(b, dict) and b.get("type") == "tool_result"
+            b for b in content if isinstance(b, dict) and b.get("type") == "tool_result"
         ]
         if not tool_results:
             return
 
-        tool_use_result = rec.get("toolUseResult") if isinstance(rec.get("toolUseResult"), dict) else {}
+        tool_use_result = (
+            rec.get("toolUseResult") if isinstance(rec.get("toolUseResult"), dict) else {}
+        )
         # When user record carries a single tool_result, top-level toolUseResult
         # holds the metadata. When multiple, we still apply it to all (best-effort).
         single = len(tool_results) == 1
@@ -372,9 +392,17 @@ class FileIngester:
                        agent_id=COALESCE(?, agent_id)
                    WHERE id=?""",
                 (
-                    result_bytes, num_lines, total_tokens,
-                    is_error, interrupted, user_modified, truncated,
-                    exit_code, duration_ms, agent_id, tool_id,
+                    result_bytes,
+                    num_lines,
+                    total_tokens,
+                    is_error,
+                    interrupted,
+                    user_modified,
+                    truncated,
+                    exit_code,
+                    duration_ms,
+                    agent_id,
+                    tool_id,
                 ),
             )
             # Plugin extractors get a second pass with the result text + status,
@@ -455,7 +483,7 @@ class FileIngester:
         # Pull current result_bytes for each tool_id as weights
         rows = self.conn.execute(
             f"SELECT id, COALESCE(result_bytes,0) AS b FROM tool_calls "
-            f"WHERE id IN ({','.join('?'*len(tool_ids))})",
+            f"WHERE id IN ({','.join('?' * len(tool_ids))})",
             tool_ids,
         ).fetchall()
         if not rows:
@@ -488,7 +516,13 @@ def ingest_all(verbose: bool = False) -> dict:
     conn = connect()
     init_schema(conn)
     files = discover()
-    stats = {"files": 0, "skipped": 0, "messages_before": 0, "messages_after": 0, "started": time.time()}
+    stats = {
+        "files": 0,
+        "skipped": 0,
+        "messages_before": 0,
+        "messages_after": 0,
+        "started": time.time(),
+    }
     stats["messages_before"] = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
 
     for jf in files:
@@ -519,15 +553,20 @@ def ingest_all(verbose: bool = False) -> dict:
                        last_offset=excluded.last_offset, last_uuid=excluded.last_uuid,
                        updated_at=excluded.updated_at""",
                 (
-                    str(jf.path), jf.project, jf.session_id,
+                    str(jf.path),
+                    jf.project,
+                    jf.session_id,
                     1 if jf.is_subagent else 0,
-                    jf.mtime, jf.size, new_offset, last_uuid,
+                    jf.mtime,
+                    jf.size,
+                    new_offset,
+                    last_uuid,
                     int(time.time()),
                 ),
             )
         stats["files"] += 1
         if verbose:
-            print(f"  ingested {jf.path.name} ({jf.size//1024}KB)")
+            print(f"  ingested {jf.path.name} ({jf.size // 1024}KB)")
 
     stats["messages_after"] = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
     stats["elapsed_s"] = round(time.time() - stats["started"], 2)

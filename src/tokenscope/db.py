@@ -1,9 +1,11 @@
 """SQLite schema, connection helper, migrations."""
+
 from __future__ import annotations
+
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 from .paths import DB_PATH
 
@@ -234,7 +236,9 @@ BASH_COLUMNS = [
 ]
 
 
-def _add_columns_if_missing(conn: sqlite3.Connection, table: str, cols: list[tuple[str, str]]) -> None:
+def _add_columns_if_missing(
+    conn: sqlite3.Connection, table: str, cols: list[tuple[str, str]]
+) -> None:
     existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
     for name, typ in cols:
         if name not in existing:

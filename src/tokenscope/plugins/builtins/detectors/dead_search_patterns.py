@@ -2,6 +2,7 @@
 follow-up Read in the same session within window_s seconds. Surfaces
 searches the agent ran but never acted on (wasted spend).
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -33,7 +34,7 @@ class DeadSearchPatterns:
           SELECT id, session_id, search_pattern, web_query, tool_name, timestamp,
                  attributed_cost_usd cost
           FROM tool_calls
-          {tc_w + ' AND ' if tc_w else ' WHERE '}
+          {tc_w + " AND " if tc_w else " WHERE "}
             tool_name IN ('Grep','Glob','WebSearch')
         ),
         followups AS (

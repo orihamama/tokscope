@@ -1,5 +1,7 @@
 """Materialize sessions / tasks / file_activity / tool_sequences after ingest."""
+
 from __future__ import annotations
+
 import sqlite3
 
 from .bash_parse import parse_bash
@@ -176,8 +178,7 @@ def backfill_bash(conn: sqlite3.Connection) -> int:
         conn.execute(
             "UPDATE tool_calls SET bash_program=?, bash_subcommand=?, "
             "bash_category=?, bash_pipe_count=?, bash_has_sudo=? WHERE id=?",
-            (p["program"], p["subcommand"], p["category"],
-             p["pipe_count"], p["has_sudo"], r["id"]),
+            (p["program"], p["subcommand"], p["category"], p["pipe_count"], p["has_sudo"], r["id"]),
         )
         n += 1
     return n

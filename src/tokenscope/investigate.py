@@ -10,21 +10,19 @@ detectors scoped to the target, score evidence, and synthesize:
 
 Keeps logic out of MCP layer; MCP `investigate` tool just calls in.
 """
+
 from __future__ import annotations
 
 import sqlite3
-from typing import Any
 
 from .analytics_core import (
-    _LIMIT_CAP,
-    _build_filters,
     _conn,
     cost_outliers,
     reasoning_cache,
 )
 
-
 # ---------- root cause matchers ---------------------------------------
+
 
 def _match_root_causes(evidence: list[dict], facts: dict) -> list[dict]:
     """Pattern-match evidence sets into named root causes with confidence."""
@@ -38,87 +36,106 @@ def _match_root_causes(evidence: list[dict], facts: dict) -> list[dict]:
     pr = by_sig.get("paging_reads")
     if (rrr or pr) and fac.get("grep_calls", 0) == 0:
         impact = float((rrr or {}).get("value_usd", 0)) + float((pr or {}).get("value_usd", 0))
-        causes.append({
-            "cause": "Agent paged through file with offset Reads instead of Grep",
-            "confidence": "high",
-            "evidence_signals": [s for s in ("redundant_read_ranges", "paging_reads")
-                                 if s in by_sig],
-            "estimated_impact_usd": round(impact, 4),
-        })
+        causes.append(
+            {
+                "cause": "Agent paged through file with offset Reads instead of Grep",
+                "confidence": "high",
+                "evidence_signals": [
+                    s for s in ("redundant_read_ranges", "paging_reads") if s in by_sig
+                ],
+                "estimated_impact_usd": round(impact, 4),
+            }
+        )
     elif rrr and rrr.get("value_usd", 0) > 0.5:
-        causes.append({
-            "cause": "File re-read many times despite available cache; could use Grep for targeted lookup",
-            "confidence": "medium",
-            "evidence_signals": ["redundant_read_ranges"],
-            "estimated_impact_usd": rrr.get("value_usd", 0.0),
-        })
+        causes.append(
+            {
+                "cause": "File re-read many times despite available cache; could use Grep for targeted lookup",
+                "confidence": "medium",
+                "evidence_signals": ["redundant_read_ranges"],
+                "estimated_impact_usd": rrr.get("value_usd", 0.0),
+            }
+        )
 
     # permission denials loop
     pd = by_sig.get("permission_denials")
     if pd and pd.get("count", 0) >= 3:
-        causes.append({
-            "cause": "Bash permission denials caused agent to retry blocked actions",
-            "confidence": "high" if pd["count"] >= 10 else "medium",
-            "evidence_signals": ["permission_denials"],
-            "estimated_impact_usd": 0.0,
-        })
+        causes.append(
+            {
+                "cause": "Bash permission denials caused agent to retry blocked actions",
+                "confidence": "high" if pd["count"] >= 10 else "medium",
+                "evidence_signals": ["permission_denials"],
+                "estimated_impact_usd": 0.0,
+            }
+        )
 
     # agent concurrency races
     ar = by_sig.get("agent_races")
     if ar and ar.get("count", 0) > 0:
-        causes.append({
-            "cause": "Agent spawned new sub-task while prior was still running",
-            "confidence": "high",
-            "evidence_signals": ["agent_races"],
-            "estimated_impact_usd": 0.0,
-        })
+        causes.append(
+            {
+                "cause": "Agent spawned new sub-task while prior was still running",
+                "confidence": "high",
+                "evidence_signals": ["agent_races"],
+                "estimated_impact_usd": 0.0,
+            }
+        )
 
     # bash build/test failure loop
     br = by_sig.get("bash_retries")
     if br and br.get("count", 0) >= 2:
-        causes.append({
-            "cause": f"Repeated bash command failed {br['count']}× — build/test broken or env mismatch",
-            "confidence": "medium",
-            "evidence_signals": ["bash_retries"],
-            "estimated_impact_usd": br.get("value_usd", 0.0),
-        })
+        causes.append(
+            {
+                "cause": f"Repeated bash command failed {br['count']}× — build/test broken or env mismatch",
+                "confidence": "medium",
+                "evidence_signals": ["bash_retries"],
+                "estimated_impact_usd": br.get("value_usd", 0.0),
+            }
+        )
 
     # http error cascade
     ec = by_sig.get("error_chains")
     if ec and ec.get("status_class") == "http_error":
-        causes.append({
-            "cause": "WebFetch URLs returning 4xx/5xx — invalid URLs or timing race",
-            "confidence": "medium",
-            "evidence_signals": ["error_chains"],
-            "estimated_impact_usd": ec.get("value_usd", 0.0),
-        })
+        causes.append(
+            {
+                "cause": "WebFetch URLs returning 4xx/5xx — invalid URLs or timing race",
+                "confidence": "medium",
+                "evidence_signals": ["error_chains"],
+                "estimated_impact_usd": ec.get("value_usd", 0.0),
+            }
+        )
 
     # context bloat / compaction risk
     if fac.get("max_input_tokens", 0) > 150000:
-        causes.append({
-            "cause": f"Single turn reached {fac['max_input_tokens']:,} input tokens — context near limit",
-            "confidence": "high" if fac.get("compactions", 0) > 0 else "medium",
-            "evidence_signals": ["context_pressure"],
-            "estimated_impact_usd": 0.0,
-        })
+        causes.append(
+            {
+                "cause": f"Single turn reached {fac['max_input_tokens']:,} input tokens — context near limit",
+                "confidence": "high" if fac.get("compactions", 0) > 0 else "medium",
+                "evidence_signals": ["context_pressure"],
+                "estimated_impact_usd": 0.0,
+            }
+        )
 
     # long-running session
     if fac.get("duration_hours", 0) > 24:
-        causes.append({
-            "cause": f"Session ran {fac['duration_hours']:.0f} hours; long sessions accumulate context overhead and re-discovery cost",
-            "confidence": "medium",
-            "evidence_signals": ["session_duration"],
-            "estimated_impact_usd": 0.0,
-        })
+        causes.append(
+            {
+                "cause": f"Session ran {fac['duration_hours']:.0f} hours; long sessions accumulate context overhead and re-discovery cost",
+                "confidence": "medium",
+                "evidence_signals": ["session_duration"],
+                "estimated_impact_usd": 0.0,
+            }
+        )
 
     # tool concentration
     if fac.get("top_tool_pct", 0) > 0.5:
-        causes.append({
-            "cause": f"{fac.get('top_tool_name','?')} dominates spend ({fac['top_tool_pct']*100:.0f}% of session cost)",
-            "confidence": "low",
-            "evidence_signals": ["tool_breakdown"],
-            "estimated_impact_usd": 0.0,
-        })
+        causes.append(
+            {
+                "cause": f"{fac.get('top_tool_name', '?')} dominates spend ({fac['top_tool_pct'] * 100:.0f}% of session cost)",
+                "confidence": "low",
+                "evidence_signals": ["tool_breakdown"],
+                "estimated_impact_usd": 0.0,
+            }
+        )
 
     return causes
 
@@ -127,57 +144,80 @@ def _suggest_actions(causes: list[dict], facts: dict) -> list[dict]:
     """Rank concrete actions by impact × effort."""
     actions: list[dict] = []
     seen: set[str] = set()
+
     def _add(label, action, impact, effort):
         if action in seen:
             return
         seen.add(action)
-        actions.append({"label": label, "action": action,
-                        "impact": impact, "effort": effort})
+        actions.append({"label": label, "action": action, "impact": impact, "effort": effort})
 
     for c in causes:
         cause = c["cause"]
         if "paged through file" in cause or "re-read many times" in cause:
-            _add("Use Grep for targeted lookup",
-                 "Prefer Grep over offset Read for files >2000 lines; fetch specific symbols, not pages.",
-                 "high", "behavioral")
+            _add(
+                "Use Grep for targeted lookup",
+                "Prefer Grep over offset Read for files >2000 lines; fetch specific symbols, not pages.",
+                "high",
+                "behavioral",
+            )
         if "permission denials" in cause:
-            _add("Adjust permissions",
-                 "Add the failing Bash command to settings.json `allow` list, or "
-                 "switch the agent to a permitted alternative tool.",
-                 "high", "config")
+            _add(
+                "Adjust permissions",
+                "Add the failing Bash command to settings.json `allow` list, or "
+                "switch the agent to a permitted alternative tool.",
+                "high",
+                "config",
+            )
         if "still running" in cause or "concurrency" in cause:
-            _add("Serialise Agent calls",
-                 "Wait for the prior Agent to complete before spawning the next; "
-                 "or call TaskStop first.",
-                 "medium", "behavioral")
+            _add(
+                "Serialise Agent calls",
+                "Wait for the prior Agent to complete before spawning the next; "
+                "or call TaskStop first.",
+                "medium",
+                "behavioral",
+            )
         if "bash command failed" in cause:
-            _add("Fix root cause of bash failure",
-                 "Inspect stderr/exit code of the repeated command and fix the "
-                 "underlying issue rather than retrying.",
-                 "high", "code")
+            _add(
+                "Fix root cause of bash failure",
+                "Inspect stderr/exit code of the repeated command and fix the "
+                "underlying issue rather than retrying.",
+                "high",
+                "code",
+            )
         if "WebFetch" in cause or "http_error" in cause:
-            _add("Validate URLs before WebFetch",
-                 "Pre-check URLs (curl -I) or add retry-with-backoff before WebFetch.",
-                 "medium", "behavioral")
+            _add(
+                "Validate URLs before WebFetch",
+                "Pre-check URLs (curl -I) or add retry-with-backoff before WebFetch.",
+                "medium",
+                "behavioral",
+            )
         if "context near limit" in cause:
-            _add("Split context",
-                 "Run /compact before context fills; split work across sessions; "
-                 "avoid Reading huge files into context.",
-                 "high", "behavioral")
+            _add(
+                "Split context",
+                "Run /compact before context fills; split work across sessions; "
+                "avoid Reading huge files into context.",
+                "high",
+                "behavioral",
+            )
         if "Session ran" in cause and "hours" in cause:
-            _add("Start fresh sessions",
-                 "Open a new session per task; long sessions accumulate cache "
-                 "rebuild overhead and lose attention focus.",
-                 "medium", "behavioral")
+            _add(
+                "Start fresh sessions",
+                "Open a new session per task; long sessions accumulate cache "
+                "rebuild overhead and lose attention focus.",
+                "medium",
+                "behavioral",
+            )
     return actions
 
 
 # ---------- evidence collector ---------------------------------------
 
+
 def _gather_evidence(conn: sqlite3.Connection, filters: dict, facts: dict) -> list[dict]:
     """Run every registered detector scoped to filters; reduce each to one
     normalised evidence row."""
     from .plugins import registry as _registry
+
     _registry.load_all()
     evidence: list[dict] = []
     for name, det in _registry.detectors.items():
@@ -207,14 +247,31 @@ def _reduce_detector(name: str, rows: list[dict]) -> dict | None:
         for k in ("wasted_cost_estimate", "cost", "total_cost"):
             v = r.get(k)
             if isinstance(v, (int, float)):
-                val += float(v); break
+                val += float(v)
+                break
         if sample is None:
-            sample = {k: v for k, v in r.items() if k in (
-                "session_id", "file_path", "bash_command", "prev_tool",
-                "next_tool", "status_class_top", "redundancy_factor",
-                "pages", "denials", "races", "real_errs", "real_errors",
-                "retries", "repeats", "recommendation"
-            )}
+            sample = {
+                k: v
+                for k, v in r.items()
+                if k
+                in (
+                    "session_id",
+                    "file_path",
+                    "bash_command",
+                    "prev_tool",
+                    "next_tool",
+                    "status_class_top",
+                    "redundancy_factor",
+                    "pages",
+                    "denials",
+                    "races",
+                    "real_errs",
+                    "real_errors",
+                    "retries",
+                    "repeats",
+                    "recommendation",
+                )
+            }
     return {
         "signal": name,
         "count": n,
@@ -225,20 +282,24 @@ def _reduce_detector(name: str, rows: list[dict]) -> dict | None:
 
 # ---------- session facts -------------------------------------------
 
+
 def _session_facts(conn: sqlite3.Connection, session_id: str) -> dict:
-    sess = conn.execute(
-        "SELECT * FROM sessions WHERE session_id=?", (session_id,)
-    ).fetchone()
+    sess = conn.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
     if not sess:
         return {}
     duration_hours = 0.0
     if sess["started_at"] and sess["ended_at"]:
         duration_hours = (sess["ended_at"] - sess["started_at"]) / 3600000
 
-    tool_rows = [dict(r) for r in conn.execute(
-        """SELECT tool_name, COUNT(*) calls, ROUND(SUM(attributed_cost_usd),4) cost
+    tool_rows = [
+        dict(r)
+        for r in conn.execute(
+            """SELECT tool_name, COUNT(*) calls, ROUND(SUM(attributed_cost_usd),4) cost
            FROM tool_calls WHERE session_id=?
-           GROUP BY tool_name ORDER BY cost DESC""", (session_id,))]
+           GROUP BY tool_name ORDER BY cost DESC""",
+            (session_id,),
+        )
+    ]
     total_cost = sum(t["cost"] or 0 for t in tool_rows)
     top_tool = tool_rows[0] if tool_rows else None
 
@@ -246,7 +307,8 @@ def _session_facts(conn: sqlite3.Connection, session_id: str) -> dict:
 
     max_in_row = conn.execute(
         """SELECT MAX(input_tokens + cache_read) m FROM messages
-           WHERE session_id=? AND role='assistant'""", (session_id,)
+           WHERE session_id=? AND role='assistant'""",
+        (session_id,),
     ).fetchone()
     max_input = max_in_row["m"] if max_in_row else 0
 
@@ -270,19 +332,25 @@ def _session_facts(conn: sqlite3.Connection, session_id: str) -> dict:
 
 def _session_timeline(conn: sqlite3.Connection, session_id: str, limit: int = 8) -> list[dict]:
     """Top expensive turns + first error of each kind."""
-    rows = [dict(r) for r in conn.execute(
-        """SELECT timestamp, model, output_tokens, cache_creation, cost_usd,
+    rows = [
+        dict(r)
+        for r in conn.execute(
+            """SELECT timestamp, model, output_tokens, cache_creation, cost_usd,
                   is_compact_summary
            FROM messages WHERE session_id=? AND role='assistant' AND cost_usd > 0
-           ORDER BY cost_usd DESC LIMIT ?""", (session_id, limit))]
+           ORDER BY cost_usd DESC LIMIT ?""",
+            (session_id, limit),
+        )
+    ]
     return rows
 
 
 # ---------- entry point ----------------------------------------------
 
-def investigate(session_id: str | None = None,
-                target: str = "auto",
-                filters: dict | None = None) -> dict:
+
+def investigate(
+    session_id: str | None = None, target: str = "auto", filters: dict | None = None
+) -> dict:
     """Run a deep investigation.
 
     Modes:
@@ -329,9 +397,7 @@ def investigate(session_id: str | None = None,
             f"${facts['cost']:.2f} cost, {facts['msgs']:,} messages, "
             f"{facts['tool_calls']:,} tool calls."
         ),
-        "key_issue": (
-            causes[0]["cause"] if causes else "no major root cause matched"
-        ),
+        "key_issue": (causes[0]["cause"] if causes else "no major root cause matched"),
         "estimated_avoidable_usd": estimated_waste,
     }
 

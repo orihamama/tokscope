@@ -3,6 +3,7 @@
 Distinguishes user rejections from real errors so detectors can filter cleanly.
 Stores a 200-char snippet for downstream debugging.
 """
+
 from __future__ import annotations
 
 import re
@@ -10,17 +11,29 @@ import re
 from ...registry import registry
 
 _STATUS_VALUES = {
-    "success", "user_rejection", "denied", "not_in_plan_mode", "agent_busy",
-    "http_error", "timeout", "bash_exit_nonzero", "empty_result",
-    "interrupted", "tool_error",
+    "success",
+    "user_rejection",
+    "denied",
+    "not_in_plan_mode",
+    "agent_busy",
+    "http_error",
+    "timeout",
+    "bash_exit_nonzero",
+    "empty_result",
+    "interrupted",
+    "tool_error",
 }
 
 _HTTP_RE = re.compile(r"Request failed with status code (\d+)")
 
 
-def classify(text: str | None, tool_name: str | None,
-             exit_code: int | None, is_error: bool, interrupted: bool
-             ) -> tuple[str, int]:
+def classify(
+    text: str | None,
+    tool_name: str | None,
+    exit_code: int | None,
+    is_error: bool,
+    interrupted: bool,
+) -> tuple[str, int]:
     """Return (status_class, is_user_rejection)."""
     t = (text or "")[:500]
     if interrupted:
@@ -32,8 +45,11 @@ def classify(text: str | None, tool_name: str | None,
             return ("empty_result", 0)
         return ("success", 0)
     # is_error == True from here on.
-    if "Permission to use" in t or "permission has been denied" in t.lower() \
-       or "permission denied" in t.lower():
+    if (
+        "Permission to use" in t
+        or "permission has been denied" in t.lower()
+        or "permission denied" in t.lower()
+    ):
         return ("denied", 0)
     if "You are not in plan mode" in t:
         return ("not_in_plan_mode", 0)
@@ -65,9 +81,7 @@ class StatusClass:
         if ctx.target != "tool_call":
             return None
         text = ctx.tool_result_text
-        cls, rej = classify(
-            text, ctx.tool_name, ctx.exit_code, ctx.is_error, ctx.interrupted
-        )
+        cls, rej = classify(text, ctx.tool_name, ctx.exit_code, ctx.is_error, ctx.interrupted)
         snippet = (text or "")[:200] if text and (ctx.is_error or ctx.interrupted) else None
         return {
             "status_class": cls,

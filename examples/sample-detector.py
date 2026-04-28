@@ -6,6 +6,7 @@ it auto-discoverable, or copy the pattern for your own detector.
 Detects sessions running for more than `min_hours` (default 24h) — long
 sessions accumulate context-rebuild overhead and lose attention focus.
 """
+
 from __future__ import annotations
 
 from tokenscope.analytics_core import _build_filters

@@ -1,4 +1,5 @@
 """Smoke tests for the MCP server: tool listing + happy-path call."""
+
 from __future__ import annotations
 
 import json
@@ -11,9 +12,11 @@ def patched_mcp(seeded_db, monkeypatch):
     """Point all MCP tool implementations at the seeded DB."""
     from tokenscope import analytics_core as core
     from tokenscope import investigate as inv
+
     monkeypatch.setattr(core, "_conn", lambda: seeded_db)
     monkeypatch.setattr(inv, "_conn", lambda: seeded_db)
     from tokenscope import mcp_server
+
     return mcp_server
 
 
@@ -22,10 +25,15 @@ async def test_tools_list(patched_mcp):
     tools = await patched_mcp.list_tools()
     names = {t.name for t in tools}
     expected = {
-        "get_overview", "get_insights", "get_top_costs",
-        "get_session_detail", "get_reasoning_cache",
-        "find_duplicate_reads", "find_bash_retries",
-        "find_error_chains", "find_compaction_root",
+        "get_overview",
+        "get_insights",
+        "get_top_costs",
+        "get_session_detail",
+        "get_reasoning_cache",
+        "find_duplicate_reads",
+        "find_bash_retries",
+        "find_error_chains",
+        "find_compaction_root",
         "investigate",
     }
     assert expected.issubset(names)
@@ -48,8 +56,7 @@ async def test_call_get_overview(patched_mcp):
 
 @pytest.mark.asyncio
 async def test_call_investigate(patched_mcp):
-    out = await patched_mcp.call_tool(
-        "investigate", {"session_id": "S1", "target": "session"})
+    out = await patched_mcp.call_tool("investigate", {"session_id": "S1", "target": "session"})
     parsed = json.loads(out[0].text)
     assert parsed["target"]["id"] == "S1"
     assert "root_causes" in parsed and "actions" in parsed

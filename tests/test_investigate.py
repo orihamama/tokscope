@@ -1,4 +1,5 @@
 """Unit tests for the investigate pipeline."""
+
 from __future__ import annotations
 
 import pytest
@@ -6,8 +7,9 @@ import pytest
 
 @pytest.fixture
 def patched_inv(seeded_db, monkeypatch):
-    from tokenscope import investigate as inv
     from tokenscope import analytics_core as core
+    from tokenscope import investigate as inv
+
     monkeypatch.setattr(core, "_conn", lambda: seeded_db)
     monkeypatch.setattr(inv, "_conn", lambda: seeded_db)
     return inv
@@ -26,7 +28,7 @@ def test_investigate_specific_session(patched_inv):
 def test_investigate_returns_root_causes_and_actions(patched_inv):
     res = patched_inv.investigate(target="session", session_id="S1")
     assert res["root_causes"]  # at least one
-    assert res["actions"]      # at least one
+    assert res["actions"]  # at least one
     # Each cause has the required fields.
     for c in res["root_causes"]:
         assert "cause" in c and "confidence" in c

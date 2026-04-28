@@ -2,6 +2,7 @@
 
 Reject-aware: excludes is_user_rejection=1.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -57,9 +58,13 @@ class BashRetries:
         for r in rows:
             cls = r.get("status_class_top")
             if cls == "denied":
-                r["recommendation"] = "Permission denied — adjust settings.json or use alternative tool"
+                r["recommendation"] = (
+                    "Permission denied — adjust settings.json or use alternative tool"
+                )
             elif cls == "bash_exit_nonzero":
-                r["recommendation"] = "Real exit-code failure — fix the underlying error before retrying"
+                r["recommendation"] = (
+                    "Real exit-code failure — fix the underlying error before retrying"
+                )
             elif cls == "timeout":
                 r["recommendation"] = "Command timed out repeatedly; raise timeout or split work"
             else:

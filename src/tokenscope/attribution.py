@@ -1,6 +1,6 @@
 """Byte-weighted token attribution to tool calls."""
+
 from __future__ import annotations
-from typing import Iterable
 
 
 def split_proportional(total: int, weights: list[float]) -> list[int]:
@@ -17,9 +17,7 @@ def split_proportional(total: int, weights: list[float]) -> list[int]:
     raw = [total * w / s for w in weights]
     floors = [int(r) for r in raw]
     remainder = total - sum(floors)
-    fracs = sorted(
-        range(len(weights)), key=lambda i: raw[i] - floors[i], reverse=True
-    )
+    fracs = sorted(range(len(weights)), key=lambda i: raw[i] - floors[i], reverse=True)
     for i in fracs[:remainder]:
         floors[i] += 1
     return floors
@@ -28,6 +26,7 @@ def split_proportional(total: int, weights: list[float]) -> list[int]:
 def byte_size(obj) -> int:
     """Approximate JSON byte size for weighting."""
     import json
+
     try:
         return len(json.dumps(obj, ensure_ascii=False).encode("utf-8"))
     except Exception:

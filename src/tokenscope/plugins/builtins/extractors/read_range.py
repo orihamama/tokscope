@@ -1,4 +1,5 @@
 """read_range — captures Read tool offset and limit from input args."""
+
 from __future__ import annotations
 
 from ...registry import registry

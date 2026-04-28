@@ -4,6 +4,7 @@ Reject-aware: filters is_user_rejection=0 by default so user-deliberate
 plan rejections don't pollute findings. Pass include_rejections=true to
 opt back in.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -34,8 +35,8 @@ class ErrorChains:
         _, _, tc_w, tc_p = _build_filters(filters)
         # When excluding rejections, define "real error" as is_error=1 AND
         # is_user_rejection=0. Else is_error=1.
-        err_pred = "is_error=1" if include_rej else (
-            "is_error=1 AND COALESCE(is_user_rejection,0)=0"
+        err_pred = (
+            "is_error=1" if include_rej else ("is_error=1 AND COALESCE(is_user_rejection,0)=0")
         )
         sql = f"""
         WITH lagged AS (
@@ -84,7 +85,7 @@ def _rec(row):
     if cls == "timeout":
         return f"{nxt} timed out repeatedly; raise timeout or split work"
     if cls == "bash_exit_nonzero":
-        return f"Bash exit code patterns; inspect command and target"
+        return "Bash exit code patterns; inspect command and target"
     return None
 
 

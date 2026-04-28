@@ -3,6 +3,7 @@ bash_has_sudo / bash_sandbox_disabled on tool_calls rows for Bash invocations.
 
 Reframing of logic that lived inline in ingest._extract_tool_input.
 """
+
 from __future__ import annotations
 
 from ....bash_parse import parse_bash

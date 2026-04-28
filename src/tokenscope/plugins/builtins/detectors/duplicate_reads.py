@@ -2,6 +2,7 @@
 intervening Edit/Write. Cache makes it cheap, but pattern hints agent
 should keep state in context.
 """
+
 from __future__ import annotations
 
 from ....analytics_core import _build_filters
@@ -26,8 +27,7 @@ class DuplicateReads:
     def run(self, conn, filters, params):
         min_dups = max(1, min(int(params.get("min_dups", 2)), 50))
         _, _, tc_w, tc_p = _build_filters(filters)
-        extra = ("AND file_path IS NOT NULL "
-                 "AND tool_name IN ('Read','Edit','Write','MultiEdit')")
+        extra = "AND file_path IS NOT NULL AND tool_name IN ('Read','Edit','Write','MultiEdit')"
         where = (tc_w + " " + extra) if tc_w else " WHERE " + extra.lstrip("AND ").lstrip()
         sql = f"""
         WITH ord AS (
@@ -49,9 +49,7 @@ class DuplicateReads:
         for r in rows:
             if r["dup_reads"] > 20:
                 short = r["file_path"].rsplit("/", 1)[-1] if r.get("file_path") else "?"
-                r["recommendation"] = (
-                    f"Use Grep on {short!r} instead of {r['dup_reads']}× re-read"
-                )
+                r["recommendation"] = f"Use Grep on {short!r} instead of {r['dup_reads']}× re-read"
             else:
                 r["recommendation"] = None
         return rows

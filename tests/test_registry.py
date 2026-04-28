@@ -1,4 +1,5 @@
 """Plugin registry smoke tests."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -20,9 +21,15 @@ def test_builtin_extractors_loaded() -> None:
 
 def test_builtin_detectors_loaded() -> None:
     expected = {
-        "agent_races", "bash_retries", "dead_search_patterns",
-        "duplicate_reads", "error_chains", "paging_reads",
-        "permission_denials", "redundant_read_ranges", "repeat_tasks",
+        "agent_races",
+        "bash_retries",
+        "dead_search_patterns",
+        "duplicate_reads",
+        "error_chains",
+        "paging_reads",
+        "permission_denials",
+        "redundant_read_ranges",
+        "repeat_tasks",
     }
     assert expected.issubset(set(registry.detectors))
 
@@ -57,7 +64,9 @@ def test_status_class_classifies() -> None:
     cls, _ = classify("You are not in plan mode", "ExitPlanMode", None, True, False)
     assert cls == "not_in_plan_mode"
 
-    cls, _ = classify("Cannot resume agent X: it is still running. Use TaskStop", "Agent", None, True, False)
+    cls, _ = classify(
+        "Cannot resume agent X: it is still running. Use TaskStop", "Agent", None, True, False
+    )
     assert cls == "agent_busy"
 
     cls, _ = classify("Request failed with status code 404", "WebFetch", None, True, False)
@@ -72,6 +81,7 @@ def test_paging_reads_runs_on_empty_db(tmp_path) -> None:
     db = tmp_path / "t.db"
     conn = sqlite3.connect(db)
     from tokenscope.db import init_schema
+
     init_schema(conn)
     rows = registry.detectors["paging_reads"].run(conn, {}, {})
     assert rows == []

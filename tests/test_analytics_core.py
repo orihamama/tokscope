@@ -1,4 +1,5 @@
 """Unit tests for entity-level analytics_core functions."""
+
 from __future__ import annotations
 
 
@@ -61,8 +62,15 @@ def test_insights_includes_summary_and_detector_sections(patched_core):
     summary = ins["summary"]
     assert "biggest_concern" in summary
     # All registered detectors should be represented.
-    for name in ("paging_reads", "permission_denials", "agent_races",
-                 "duplicate_reads", "bash_retries", "error_chains",
-                 "redundant_read_ranges", "repeat_tasks",
-                 "dead_search_patterns"):
+    for name in (
+        "paging_reads",
+        "permission_denials",
+        "agent_races",
+        "duplicate_reads",
+        "bash_retries",
+        "error_chains",
+        "redundant_read_ranges",
+        "repeat_tasks",
+        "dead_search_patterns",
+    ):
         assert name in ins, f"missing detector section: {name}"

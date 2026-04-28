@@ -107,7 +107,21 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "RUF"]
-ignore = ["E501"]
+# Stylistic RUF rules (unicode-in-strings, mutable-class-default,
+# collection-literal-concatenation) and a few ergonomics warnings are
+# noisy for v0.1; revisit once core API stabilises.
+ignore = [
+    "E501",   # line too long
+    "RUF001", # ambiguous unicode in string
+    "RUF002", # ambiguous unicode in docstring
+    "RUF003", # ambiguous unicode in comment
+    "RUF005", # collection-literal-concatenation
+    "RUF012", # mutable class default
+    "RUF059", # unused unpacked variable
+    "B008",   # function call in default argument (typer needs this)
+    "B905",   # zip without explicit strict
+    "F841",   # unused variable
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B", "N"]
