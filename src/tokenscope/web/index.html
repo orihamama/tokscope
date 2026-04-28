@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Claude Analytics</title>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link rel="stylesheet" href="/web/style.css" />
+</head>
+<body x-data="dashboard()" x-init="init()" x-cloak>
+
+<header style="border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:20">
+  <div style="max-width:1400px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:24px;height:24px;border-radius:3px;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">⌘</div>
+      <div style="font-weight:600;letter-spacing:-0.01em">Claude Analytics</div>
+      <span class="subtle" style="font-size:11px" x-text="lastUpdate"></span>
+    </div>
+    <nav style="display:flex;gap:2px">
+      <template x-for="t in tabs" :key="t">
+        <button @click="active=t" class="tab-btn" :class="active===t ? 'active' : ''" x-text="t"></button>
+      </template>
+    </nav>
+  </div>
+
+  <!-- Filter bar -->
+  <div style="border-top:1px solid var(--border);background:var(--bg)">
+    <div style="max-width:1400px;margin:0 auto;padding:8px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+      <span class="label" style="margin-right:4px">Filters</span>
+
+      <select x-model="f.project">
+        <option value="">All projects</option>
+        <template x-for="p in options.projects" :key="p.project">
+          <option :value="p.project" x-text="`${shortPath(p.project)} ($${p.cost})`"></option>
+        </template>
+      </select>
+
+      <select x-model="f.tool">
+        <option value="">All tools</option>
+        <template x-for="t in options.tools" :key="t.tool_name">
+          <option :value="t.tool_name" x-text="`${t.tool_name} (${t.calls})`"></option>
+        </template>
+      </select>
+
+      <div style="position:relative">
+        <button @click="showSessionPicker=!showSessionPicker;showTaskPicker=false"
+                :style="f.session_id ? 'background:rgba(251,191,36,0.15);border-color:var(--accent);color:var(--accent)' : ''"
+                style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:12px;color:var(--text)">
+          <span x-text="f.session_id ? 'session: ' + f.session_id.slice(0,8) : 'Pick session ▾'"></span>
+        </button>
+        <div x-show="showSessionPicker" @click.outside="showSessionPicker=false"
+             style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:480px;max-height:380px;overflow:hidden;display:flex;flex-direction:column;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,0.5)">
+          <input type="text" x-model="sessionSearch" placeholder="Search session…" style="border:none;border-bottom:1px solid var(--border);border-radius:0;padding:8px 10px" />
+          <div style="overflow-y:auto">
+            <template x-for="s in filteredSessions()" :key="s.id">
+              <div @click="pickSession(s.id)"
+                   style="padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--border-2);font-size:11px;display:flex;gap:8px;align-items:center"
+                   onmouseover="this.style.background='rgba(251,191,36,0.08)'" onmouseout="this.style.background=''">
+                <span class="mono accent" x-text="s.id.slice(0,8)"></span>
+                <span class="muted" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" x-text="shortPath(s.project)"></span>
+                <span class="subtle mono" x-text="s.msgs+'msg'"></span>
+                <span class="accent mono" x-text="'$'+s.cost"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative">
+        <button @click="showTaskPicker=!showTaskPicker;showSessionPicker=false"
+                :style="f.task_id ? 'background:rgba(251,191,36,0.15);border-color:var(--accent);color:var(--accent)' : ''"
+                style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 10px;font-size:12px;color:var(--text)">
+          <span x-text="f.task_id ? 'task: ' + f.task_id.slice(0,12) : 'Pick task ▾'"></span>
+        </button>
+        <div x-show="showTaskPicker" @click.outside="showTaskPicker=false"
+             style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:4px;width:600px;max-height:380px;overflow:hidden;display:flex;flex-direction:column;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,0.5)">
+          <input type="text" x-model="taskSearch" placeholder="Search task…" style="border:none;border-bottom:1px solid var(--border);border-radius:0;padding:8px 10px" />
+          <div style="overflow-y:auto">
+            <template x-for="t in filteredTasks()" :key="t.id">
+              <div @click="pickTask(t.id)"
+                   style="padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--border-2);font-size:11px;display:flex;gap:8px"
+                   onmouseover="this.style.background='rgba(251,191,36,0.08)'" onmouseout="this.style.background=''">
+                <span class="accent" style="width:90px;flex-shrink:0" x-text="t.agent_type"></span>
+                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" x-text="t.description || '(no description)'"></span>
+                <span class="subtle mono" x-text="t.msgs+'msg'"></span>
+                <span class="accent mono" x-text="'$'+t.cost"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <input type="date" x-model="f.since" />
+      <span class="subtle">→</span>
+      <input type="date" x-model="f.until" />
+
+      <button x-show="activeFilters().length" @click="clearAll()"
+              style="margin-left:auto;color:var(--error);background:none;border:none;font-size:11px;cursor:pointer">Clear all</button>
+    </div>
+
+    <!-- Active filter chips -->
+    <div x-show="activeFilters().length" style="max-width:1400px;margin:0 auto;padding:0 20px 8px;display:flex;flex-wrap:wrap;gap:6px">
+      <template x-for="fl in activeFilters()" :key="fl.k">
+        <span class="chip">
+          <span x-text="fl.label"></span>
+          <button @click="clearFilter(fl.k)">×</button>
+        </span>
+      </template>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1400px;margin:0 auto;padding:16px 20px">
+
+  <!-- KPI strip — always visible -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px">
+    <div class="card card-tight">
+      <div class="label">Filtered total</div>
+      <div class="kpi-value accent" x-text="fmtUsd(overview?.spend?.all_time)"></div>
+    </div>
+    <div class="card card-tight">
+      <div class="label">Today</div>
+      <div class="kpi-value" x-text="fmtUsd(overview?.spend?.today)"></div>
+    </div>
+    <div class="card card-tight">
+      <div class="label">Last 7d</div>
+      <div class="kpi-value" x-text="fmtUsd(overview?.spend?.last_7d)"></div>
+    </div>
+    <div class="card card-tight">
+      <div class="label">Sessions</div>
+      <div class="kpi-value" x-text="fmtNum(overview?.counts?.sessions)"></div>
+    </div>
+    <div class="card card-tight">
+      <div class="label">Cache hit</div>
+      <div class="kpi-value" x-text="fmtPct(overview?.cache_hit_ratio)"></div>
+    </div>
+    <div class="card card-tight">
+      <div class="label">Compactions</div>
+      <div class="kpi-value" :class="overview?.health?.compactions > 0 ? 'err' : ''" x-text="fmtNum(overview?.health?.compactions)"></div>
+    </div>
+  </div>
+
+  <!-- ==== Map (zoomable treemap) ==== -->
+  <section x-show="active==='Map'">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <div class="crumb">
+        <template x-for="(c, idx) in zoomPath" :key="idx">
+          <span style="display:inline-flex;align-items:center;gap:4px">
+            <span class="seg" :class="idx===zoomPath.length-1 ? 'last' : ''"
+                  @click="idx<zoomPath.length-1 && zoomCrumb(idx)"
+                  x-text="shortPath(c.name)"></span>
+            <span class="sep" x-show="idx<zoomPath.length-1">›</span>
+          </span>
+        </template>
+      </div>
+      <div class="subtle" style="font-size:11px">click rectangle → zoom in · click crumb → zoom out · color = depth (project / session / task / tool)</div>
+    </div>
+    <div id="treemap-root"></div>
+    <div x-show="treemapLoading" style="margin-top:8px" class="muted">loading…</div>
+    <div style="margin-top:12px;display:flex;gap:14px;font-size:11px;align-items:center;flex-wrap:wrap">
+      <span class="label">depth:</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:var(--depth-1);border-radius:2px"></span>project</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:var(--depth-2);border-radius:2px"></span>session</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:var(--depth-3);border-radius:2px"></span>task</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:var(--depth-4);border-radius:2px"></span>tool</span>
+      <span class="subtle" style="margin:0 4px">|</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#0c4a4f;border-radius:2px"></span>bash program</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#135e63;border-radius:2px"></span>subcommand</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#1d8a8f;border-radius:2px"></span>call</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:var(--error);border-radius:2px"></span>error</span>
+      <span class="subtle" style="margin:0 4px">|</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#2a2a2a;border:1px dashed #525252;border-radius:2px"></span>residual</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#312e1f;border-radius:2px"></span>cache</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#3d2a4f;border-radius:2px"></span>thinking</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#2a3340;border-radius:2px"></span>text</span>
+      <span class="subtle" style="margin:0 4px">|</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#1f3a2c;border-radius:2px"></span>file</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#2f5e44;border-radius:2px"></span>read/write call</span>
+      <span class="subtle" style="margin-left:6px">click any tile to drill</span>
+    </div>
+  </section>
+
+  <!-- ==== Activity (small multiples grid) ==== -->
+  <section x-show="active==='Activity'">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div class="card">
+        <div class="label">Top tools by cost</div>
+        <div id="tile-tools" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Top bash programs</div>
+        <div id="tile-programs" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label" id="tile-subs-title">Top git subcommands</div>
+        <div id="tile-subs" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Bash categories</div>
+        <div id="tile-categories" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <div class="label">Top files</div>
+        <div id="tile-files" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Tool sequences (bigrams)</div>
+        <div id="tile-bigrams" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Errors per tool</div>
+        <div id="tile-errors" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Tool latency (avg)</div>
+        <div id="tile-latency" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card">
+        <div class="label">Top WebSearch queries</div>
+        <div id="tile-websearch" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Top WebFetch domains</div>
+        <div id="tile-webfetch" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Top Grep patterns</div>
+        <div id="tile-grep" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="label">Permission modes</div>
+        <div id="tile-perm" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card" style="grid-column:span 2">
+        <div class="label">Bash health</div>
+        <div id="tile-bash-health" style="margin-top:6px"></div>
+      </div>
+      <div class="card" style="grid-column:span 2">
+        <div class="label">Drill into a bash program</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+          <template x-for="p in (activity?.programs?.programs || []).slice(0,12)" :key="p.program">
+            <button @click="openBashPanel(p.program)"
+                    style="background:var(--surface-2);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-size:11px;color:var(--text);cursor:pointer">
+              <span class="mono" x-text="p.program"></span>
+              <span class="subtle" x-text="' '+p.calls"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== Sessions ==== -->
+  <section x-show="active==='Sessions'">
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Session</th><th>Project</th><th>Started</th>
+          <th class="num">Msgs</th><th class="num">Tools</th>
+          <th class="num">Compactions</th><th class="num">Errors</th>
+          <th class="num">Cache</th><th class="num">Cost</th>
+        </tr></thead>
+        <tbody>
+          <template x-for="s in sessionsData?.sessions" :key="s.session_id">
+            <tr class="clickable" @click="openSessionPanel(s.session_id)">
+              <td class="mono accent" x-text="s.session_id.slice(0,8)"></td>
+              <td class="muted" x-text="shortPath(s.project)"></td>
+              <td class="subtle" x-text="fmtDate(s.started_at)"></td>
+              <td class="num" x-text="fmtNum(s.message_count)"></td>
+              <td class="num" x-text="s.tool_call_count"></td>
+              <td class="num" :class="s.compaction_count>0 ? 'err' : 'subtle'" x-text="s.compaction_count"></td>
+              <td class="num" :class="s.error_count>0 ? 'err' : 'subtle'" x-text="s.error_count"></td>
+              <td class="num subtle" x-text="fmtPct(s.cache_hit)"></td>
+              <td class="num accent" x-text="fmtUsd(s.cost)"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ==== Health ==== -->
+  <section x-show="active==='Health'">
+    <div class="card" style="margin-bottom:10px">
+      <div class="label" style="margin-bottom:6px">API errors over time</div>
+      <div id="health-errors-spark"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div class="label" style="margin-bottom:8px">Spend by day-of-week × hour-of-day</div>
+      <div id="heatmap-grid"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="card" style="overflow-x:auto">
+        <div class="label" style="margin-bottom:6px">Sessions with most compactions</div>
+        <table>
+          <thead><tr><th>Session</th><th>Project</th><th class="num">Compactions</th><th class="num">Cost</th></tr></thead>
+          <tbody>
+            <template x-for="s in healthData?.compactions" :key="s.session_id">
+              <tr class="clickable" @click="active='Sessions';openSessionPanel(s.session_id)">
+                <td class="mono accent" x-text="s.session_id.slice(0,8)"></td>
+                <td class="muted" x-text="shortPath(s.project)"></td>
+                <td class="num err" x-text="s.compaction_count"></td>
+                <td class="num accent" x-text="fmtUsd(s.cost)"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card" style="overflow-x:auto">
+        <div class="label" style="margin-bottom:6px">Tools with most errors</div>
+        <table>
+          <thead><tr><th>Tool</th><th class="num">Errors</th></tr></thead>
+          <tbody>
+            <template x-for="t in healthData?.error_tools" :key="t.tool_name">
+              <tr class="clickable" @click="f.tool=t.tool_name">
+                <td class="accent" x-text="t.tool_name"></td>
+                <td class="num err" x-text="t.errors"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== Ledger ==== -->
+  <section x-show="active==='Ledger'">
+    <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+      <span class="label">Range:</span>
+      <template x-for="r in ['7d','30d','90d','all']" :key="r">
+        <button @click="setLedgerRange(r)" class="tab-btn" :class="ledgerRange===r ? 'active' : ''" x-text="r"></button>
+      </template>
+      <a :href="'/api/ledger?range='+ledgerRange+(qs() ? '&'+qs().slice(1) : '')" target="_blank"
+         class="subtle" style="margin-left:auto;font-size:11px;text-decoration:none">JSON →</a>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div class="label" style="margin-bottom:6px">Daily spend</div>
+      <div id="ledger-spark"></div>
+    </div>
+
+    <div class="card">
+      <div class="label" style="margin-bottom:6px">Spend by model</div>
+      <div id="ledger-models"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ==== Side Panels ==== -->
+
+<!-- Bash drill-down -->
+<div class="side-panel-overlay" :class="bashPanel ? 'open' : ''" @click="closeBashPanel()"></div>
+<div class="side-panel" :class="bashPanel ? 'open' : ''">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="label">Bash program</div>
+      <div style="font-size:18px;font-weight:600;color:var(--accent)" class="mono" x-text="bashPanel"></div>
+    </div>
+    <button @click="closeBashPanel()" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+  </div>
+  <div style="padding:14px 16px" x-show="bashPanelData">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="card card-tight"><div class="label">Calls</div><div class="kpi-value" x-text="fmtNum(bashPanelData?.summary?.calls)"></div></div>
+      <div class="card card-tight"><div class="label">Errors</div><div class="kpi-value err" x-text="fmtNum(bashPanelData?.summary?.errors)"></div></div>
+      <div class="card card-tight"><div class="label">Cost</div><div class="kpi-value accent" x-text="fmtUsd(bashPanelData?.summary?.cost)"></div></div>
+    </div>
+    <div class="label" style="margin-bottom:6px">Top subcommands</div>
+    <div style="margin-bottom:14px">
+      <template x-for="s in bashPanelData?.subcommands || []" :key="s.subcommand">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border-2)">
+          <span class="mono" x-text="bashPanel + ' ' + s.subcommand"></span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <span :class="s.errors>0 ? 'err' : 'subtle'" class="mono" x-text="s.errors>0 ? '✗'+s.errors : ''"></span>
+            <span class="muted mono" x-text="s.calls"></span>
+            <span class="accent mono" x-text="fmtUsd(s.cost)"></span>
+          </span>
+        </div>
+      </template>
+    </div>
+    <div class="label" style="margin-bottom:6px">Most expensive calls</div>
+    <div style="font-size:11px;display:flex;flex-direction:column;gap:4px">
+      <template x-for="c in bashPanelData?.samples || []" :key="c.id">
+        <div style="padding:6px;background:var(--surface-2);border-radius:3px">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;margin-bottom:2px">
+            <span class="subtle" x-text="fmtDate(c.timestamp)"></span>
+            <span style="display:flex;gap:6px">
+              <span :class="c.is_error ? 'err' : 'subtle'" x-text="c.exit_code != null ? 'exit '+c.exit_code : (c.is_error ? 'ERR' : '')"></span>
+              <span class="accent mono" x-text="fmtUsd(c.cost)"></span>
+            </span>
+          </div>
+          <div class="mono" style="font-size:11px;word-break:break-all" x-text="c.command"></div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<!-- Session detail panel -->
+<div class="side-panel-overlay" :class="sessionPanel ? 'open' : ''" @click="closeSessionPanel()"></div>
+<div class="side-panel" :class="sessionPanel ? 'open' : ''">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="label">Session</div>
+      <div style="font-size:14px;font-weight:600" class="mono accent" x-text="sessionPanel"></div>
+    </div>
+    <button @click="closeSessionPanel()" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+  </div>
+  <div style="padding:14px 16px" x-show="sessionPanelData">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="card card-tight"><div class="label">Cost</div><div class="kpi-value accent" x-text="fmtUsd(sessionPanelData?.session?.total_cost_usd)"></div></div>
+      <div class="card card-tight"><div class="label">Messages</div><div class="kpi-value" x-text="fmtNum(sessionPanelData?.session?.message_count)"></div></div>
+      <div class="card card-tight"><div class="label">Tools</div><div class="kpi-value" x-text="fmtNum(sessionPanelData?.session?.tool_call_count)"></div></div>
+    </div>
+    <div class="label" style="margin-bottom:6px">Tool breakdown</div>
+    <div style="margin-bottom:14px">
+      <template x-for="t in sessionPanelData?.tools || []" :key="t.tool_name">
+        <div class="mbar" style="margin-bottom:2px">
+          <div class="label-text" x-text="t.tool_name"></div>
+          <div class="bar" :style="`width:${Math.min((t.cost/(sessionPanelData.tools[0]?.cost||1))*150, 150)}px`"></div>
+          <div class="num-text" x-text="fmtUsd(t.cost) + ' · ' + t.calls"></div>
+        </div>
+      </template>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button @click="f.session_id = sessionPanel; closeSessionPanel(); active='Activity'"
+              style="background:var(--accent);color:#000;border:none;border-radius:3px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:500">Filter dashboard to this session</button>
+    </div>
+  </div>
+</div>
+
+<div id="tm-tooltip" class="tt" style="display:none"></div>
+
+<script src="/web/app.js"></script>
+</body>
+</html>

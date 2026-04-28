@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Type check
+        run: mypy src/
+        continue-on-error: true
+
+      - name: Test
+        run: pytest --cov --cov-report=xml -q
+
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  mcp-smoke:
+    name: MCP Inspector smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+
+      - name: tools/list via MCP Inspector
+        run: |
+          npx --yes @modelcontextprotocol/inspector --cli \
+            tokenscope mcp \
+            --method tools/list \
+            > tools.json
+          test -s tools.json
+          python -c "
+          import json, sys
+          d = json.load(open('tools.json'))
+          tools = d.get('tools') or d
+          names = {t['name'] for t in tools}
+          expected = {
+              'get_overview', 'get_insights', 'get_top_costs',
+              'get_session_detail', 'get_reasoning_cache',
+              'find_duplicate_reads', 'find_bash_retries',
+              'find_error_chains', 'find_compaction_root',
+              'investigate',
+          }
+          missing = expected - names
+          assert not missing, f'missing tools: {missing}'
+          print(f'OK: {len(names)} tools registered')
+          "

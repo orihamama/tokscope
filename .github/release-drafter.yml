@@ -1,0 +1,34 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+categories:
+  - title: "Breaking changes"
+    labels: ["breaking"]
+  - title: "Features"
+    labels: ["enhancement", "feature"]
+  - title: "Fixes"
+    labels: ["bug", "fix"]
+  - title: "MCP"
+    labels: ["surface:mcp"]
+  - title: "CLI"
+    labels: ["surface:cli"]
+  - title: "Dashboard"
+    labels: ["surface:web"]
+  - title: "Docs"
+    labels: ["documentation"]
+  - title: "Maintenance"
+    labels: ["chore", "dependencies", "ci"]
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+version-resolver:
+  major:
+    labels: ["breaking"]
+  minor:
+    labels: ["enhancement", "feature"]
+  patch:
+    labels: ["bug", "fix", "chore", "dependencies"]
+  default: patch
+template: |
+  ## What's changed
+
+  $CHANGES
+
+  **Full changelog**: https://github.com/orihamama/tokenscope/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

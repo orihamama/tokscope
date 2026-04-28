@@ -1,0 +1,82 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      description: Which part of the tool?
+      options:
+        - MCP server
+        - CLI
+        - Web dashboard
+        - Ingest / parser
+        - Other / unsure
+    validations:
+      required: true
+  - type: dropdown
+    id: mcp_client
+    attributes:
+      label: MCP client (if MCP surface)
+      options:
+        - "n/a"
+        - Claude Code
+        - Claude Desktop
+        - MCP Inspector
+        - Other
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "0.1.0 (output of `tokenscope --version` or commit SHA)"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12.x"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Exact commands / config / inputs
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error output, stack traces, screenshots
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Logs, related issues, ideas about the cause
