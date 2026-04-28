@@ -6,6 +6,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-28
+
+### Changed
+- Renamed package from `tokenscope` to `tokscope` (PyPI namespace conflict).
+- Repo renamed: `orihamama/tokenscope` → `orihamama/tokscope`.
+- All references (CLI, MCP server, env vars, user-config dir, entry-point groups) updated.
+
 ### Added
 - Pluggable plugin system (`tokscope.plugins`): `Extractor`, `Aggregator`,
   `Detector` Protocols + central `Registry`.
